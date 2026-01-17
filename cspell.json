@@ -1,0 +1,36 @@
+{
+  "$schema": "https://raw.githubusercontent.com/streetsidesoftware/cspell/main/cspell.schema.json",
+  "version": "0.2",
+  "language": "en",
+  "words": [
+    "analyzers",
+    "backlight",
+    "backlit",
+    "csharpier",
+    "cutout",
+    "dotnet",
+    "hrpnx",
+    "liltoon",
+    "matcap",
+    "ndmf",
+    "packager",
+    "rerigferl",
+    "roslyn",
+    "scriptable",
+    "softprops",
+    "stylecop",
+    "unlit",
+    "vrchat",
+    "vrcsdk"
+  ],
+  "ignorePaths": [
+    "node_modules",
+    ".git",
+    "*.meta",
+    "__Generated/**",
+    "*.dll"
+  ],
+  "enableFiletypes": [
+    "csharp"
+  ]
+}

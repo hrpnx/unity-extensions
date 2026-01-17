@@ -1,0 +1,47 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Restore NuGet packages
+        run: dotnet restore Analyzers.csproj
+
+      - name: Check formatting with CSharpier
+        run: |
+          dotnet tool install --global csharpier
+          dotnet csharpier --check .
+
+      - name: Run dotnet format
+        run: dotnet format Analyzers.csproj --verify-no-changes --verbosity diagnostic
+        continue-on-error: true
+
+      - name: Run CSpell
+        run: |
+          npm install -g cspell
+          cspell "**/*.cs" --no-progress
+
+      - name: Check EditorConfig
+        uses: editorconfig-checker/action-editorconfig-checker@main
+
+      - name: Run editorconfig-checker
+        run: editorconfig-checker
