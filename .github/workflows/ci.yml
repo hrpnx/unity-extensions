@@ -34,4 +34,3 @@ jobs:
 
       - name: Run dotnet format
         run: dotnet format Analyzers.csproj --verify-no-changes --verbosity diagnostic
-        continue-on-error: true

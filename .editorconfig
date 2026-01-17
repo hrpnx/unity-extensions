@@ -86,6 +86,16 @@ dotnet_diagnostic.SA1602.severity = none
 dotnet_diagnostic.SA1633.severity = none
 # SA1629: Documentation text should end with a period
 dotnet_diagnostic.SA1629.severity = none
+# SA1009: Closing parenthesis should not be preceded by a space (conflicts with CSharpier)
+dotnet_diagnostic.SA1009.severity = none
+# SA1111: Closing parenthesis should be on line of last parameter (conflicts with CSharpier)
+dotnet_diagnostic.SA1111.severity = none
+# SA1401: Field should be private (Unity serialized fields need to be public)
+dotnet_diagnostic.SA1401.severity = none
+# SA1516: Elements should be separated by blank line (conflicts with CSharpier)
+dotnet_diagnostic.SA1516.severity = none
+# SA1204: Static members should appear before non-static members
+dotnet_diagnostic.SA1204.severity = none
 
 # CA rules adjustments for Unity
 # CA1822: Mark members as static
