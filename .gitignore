@@ -41,6 +41,7 @@
 ExportedObj/
 .consulo/
 *.csproj
+!Analyzers.csproj
 *.unityproj
 *.sln
 *.suo
