@@ -23,25 +23,15 @@ jobs:
         with:
           node-version: "20"
 
-      - name: Restore NuGet packages
-        run: dotnet restore Analyzers.csproj
-
-      - name: Check formatting with CSharpier
+      - name: Install dependencies
         run: |
-          dotnet tool install --global csharpier
-          ~/.dotnet/tools/csharpier check .
+          dotnet restore Analyzers.csproj
+          dotnet tool restore
+          npm install
+
+      - name: Lint
+        run: npm run lint
 
       - name: Run dotnet format
         run: dotnet format Analyzers.csproj --verify-no-changes --verbosity diagnostic
         continue-on-error: true
-
-      - name: Run CSpell
-        run: |
-          npm install -g cspell
-          cspell "**/*" --no-progress
-
-      - name: Check EditorConfig
-        uses: editorconfig-checker/action-editorconfig-checker@main
-
-      - name: Run editorconfig-checker
-        run: editorconfig-checker

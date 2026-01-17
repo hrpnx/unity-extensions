@@ -3,8 +3,8 @@ pre-push:
   commands:
     csharpier:
       glob: "*.cs"
-      run: ~/.dotnet/tools/csharpier check .
+      run: npm run lint:csharpier
     cspell:
-      run: npx cspell "**/*" --no-progress
+      run: npm run lint:cspell
     editorconfig:
-      run: npx editorconfig-checker
+      run: npm run lint:editorconfig

@@ -10,5 +10,15 @@
   },
   "license": "MIT",
   "licenseUrl": "https://github.com/hrpnx/unity-extensions/blob/main/LICENSE",
-  "vpmDependencies": {}
+  "vpmDependencies": {},
+  "scripts": {
+    "lint": "npm run lint:csharpier && npm run lint:cspell && npm run lint:editorconfig",
+    "lint:csharpier": "dotnet csharpier check .",
+    "lint:cspell": "cspell \"**/*\" --no-progress --gitignore",
+    "lint:editorconfig": "editorconfig-checker"
+  },
+  "devDependencies": {
+    "cspell": "^8.17.5",
+    "editorconfig-checker": "^6.0.1"
+  }
 }
