@@ -38,7 +38,7 @@ jobs:
       - name: Run CSpell
         run: |
           npm install -g cspell
-          cspell "**/*.cs" --no-progress
+          cspell "**/*" --no-progress
 
       - name: Check EditorConfig
         uses: editorconfig-checker/action-editorconfig-checker@main
