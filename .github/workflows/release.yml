@@ -9,12 +9,11 @@ on:
 permissions:
   contents: write
 
-env:
-  packageName: "dev.hrpnx.unity-extensions"
-
 jobs:
-  build:
+  check:
     runs-on: "ubuntu-latest"
+    outputs:
+      should-release: ${{ steps.version-check.outputs.changed == 'true' || github.event_name == 'workflow_dispatch' }}
     steps:
       - name: "Checkout"
         uses: "actions/checkout@v4"
@@ -34,9 +33,16 @@ jobs:
             echo "Version unchanged: $NEW_VERSION"
           fi
 
+  release:
+    needs: check
+    if: needs.check.outputs.should-release == 'true'
+    runs-on: "ubuntu-latest"
+    steps:
+      - name: "Checkout"
+        uses: "actions/checkout@v4"
+
       - name: "Build"
         id: "build"
-        if: steps.version-check.outputs.changed == 'true' || github.event_name == 'workflow_dispatch'
         uses: "docker://ghcr.io/rerigferl/vpm-packager:latest"
         with:
           args: "-z -u"
