@@ -64,39 +64,43 @@ namespace Hrpnx.UnityExtensions.BackLitMenuInstaller
         private void CreateMenu(GameObject avatarRoot, BackLitMenuInstaller installer)
         {
             var renderers = avatarRoot.GetComponentsInChildren<Renderer>(true);
-            string destDir = GetGeneratedAssetsDirectory();
+            string absoluteDir = GetGeneratedAssetsAbsoluteDirectory();
+            string assetDir = GetGeneratedAssetsRelativeDirectory();
 
-            if (Directory.Exists(destDir))
+            if (Directory.Exists(absoluteDir))
             {
-                Directory.Delete(destDir, true);
+                Directory.Delete(absoluteDir, true);
             }
-            Directory.CreateDirectory(destDir);
+            Directory.CreateDirectory(absoluteDir);
             AssetDatabase.Refresh();
 
             var animOnClip = CreateOnAnimationClip(renderers, avatarRoot.transform, installer);
-            CreateAsset(animOnClip, Path.Combine(destDir, $"{BaseName}_On.anim"));
+            CreateAsset(animOnClip, $"{assetDir}/{BaseName}_On.anim");
 
             var animOffClip = CreateOffAnimationClip(
                 renderers,
                 avatarRoot.transform,
                 installer.Exclusions
             );
-            CreateAsset(animOffClip, Path.Combine(destDir, $"{BaseName}_Off.anim"));
+            CreateAsset(animOffClip, $"{assetDir}/{BaseName}_Off.anim");
 
             var controller = CreateAnimatorController(animOnClip, animOffClip);
-            CreateAsset(controller, Path.Combine(destDir, $"{BaseName}_Controller.controller"));
+            CreateAsset(controller, $"{assetDir}/{BaseName}_Controller.controller");
 
             var menu = CreateExpressionsMenu();
-            CreateAsset(menu, Path.Combine(destDir, $"{BaseName}_Menu.asset"));
+            CreateAsset(menu, $"{assetDir}/{BaseName}_Menu.asset");
 
             AttachModularAvatarComponents(installer, controller, menu);
         }
 
-        private static string GetGeneratedAssetsDirectory()
+        private static string GetGeneratedAssetsAbsoluteDirectory()
         {
             string packagePath = Path.GetFullPath("Packages/dev.hrpnx.unity-extensions");
             return Path.Combine(packagePath, "__Generated", "BackLitMenuInstaller");
         }
+
+        private static string GetGeneratedAssetsRelativeDirectory() =>
+            "Packages/dev.hrpnx.unity-extensions/__Generated/BackLitMenuInstaller";
 
         private AnimationClip CreateOnAnimationClip(
             Renderer[] renderers,
