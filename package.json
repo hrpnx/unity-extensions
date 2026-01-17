@@ -12,6 +12,7 @@
   "licenseUrl": "https://github.com/hrpnx/unity-extensions/blob/main/LICENSE",
   "vpmDependencies": {},
   "scripts": {
+    "prepare": "lefthook install",
     "lint": "run-p lint:*",
     "lint:csharpier": "dotnet csharpier check .",
     "lint:cspell": "cspell \"**/*\" --no-progress --gitignore",
@@ -19,7 +20,10 @@
     "lint:secretlint": "secretlint \"**/*\""
   },
   "devDependencies": {
+    "@commitlint/cli": "^19.7.1",
+    "@commitlint/config-conventional": "^19.7.1",
     "@secretlint/secretlint-rule-preset-recommend": "^11.3.0",
+    "lefthook": "^1.11.3",
     "cspell": "^8.17.5",
     "editorconfig-checker": "^6.0.1",
     "npm-run-all2": "^8.0.4",
