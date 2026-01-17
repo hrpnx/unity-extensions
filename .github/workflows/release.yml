@@ -1,6 +1,9 @@
 name: Release
 
 on:
+  push:
+    branches: [main]
+    paths: [package.json]
   workflow_dispatch:
 
 permissions:
@@ -15,16 +18,32 @@ jobs:
     steps:
       - name: "Checkout"
         uses: "actions/checkout@v4"
+        with:
+          fetch-depth: 2
+
+      - name: "Check version change"
+        id: "version-check"
+        run: |
+          OLD_VERSION=$(git show HEAD~1:package.json 2>/dev/null | jq -r '.version' || echo "")
+          NEW_VERSION=$(jq -r '.version' package.json)
+          if [ "$OLD_VERSION" != "$NEW_VERSION" ]; then
+            echo "changed=true" >> $GITHUB_OUTPUT
+            echo "Version changed: $OLD_VERSION -> $NEW_VERSION"
+          else
+            echo "changed=false" >> $GITHUB_OUTPUT
+            echo "Version unchanged: $NEW_VERSION"
+          fi
 
       - name: "Build"
         id: "build"
+        if: steps.version-check.outputs.changed == 'true' || github.event_name == 'workflow_dispatch'
         uses: "docker://ghcr.io/rerigferl/vpm-packager:latest"
         with:
           args: "-z -u"
 
       - name: "Create Release"
         uses: "softprops/action-gh-release@v2"
-        if: ${{ steps.build.outputs.package-version != '0.0.0' }}
+        if: steps.build.outputs.package-version != '0.0.0'
         with:
           tag_name: ${{ steps.build.outputs.package-version }}
           draft: true
