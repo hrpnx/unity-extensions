@@ -47,7 +47,7 @@ namespace Hrpnx.UnityExtensions.VRCFallbackSetter
             var renderers = avatarRoot.GetComponentsInChildren<Renderer>(true);
             int processedCount = 0;
             int excludedCount = 0;
-            string fallbackValue = setter.FallbackType.ToString();
+            string fallbackValue = BuildFallbackTag(setter);
 
             foreach (var renderer in renderers)
             {
@@ -74,7 +74,30 @@ namespace Hrpnx.UnityExtensions.VRCFallbackSetter
                 }
             }
 
-            Debug.Log($"[VRCFallbackSetter] Set VRCFallback to {fallbackValue} for {processedCount} materials. (Excluded: {excludedCount})");
+            Debug.Log($"[VRCFallbackSetter] Set VRCFallback to \"{fallbackValue}\" for {processedCount} materials. (Excluded: {excludedCount})");
+        }
+
+        private static string BuildFallbackTag(VRCFallbackSetter setter)
+        {
+            string tag = setter.ShaderType.ToString();
+
+            tag += setter.RenderingMode switch
+            {
+                VRCFallbackRenderingMode.Opaque => string.Empty,
+                VRCFallbackRenderingMode.Cutout => "Cutout",
+                VRCFallbackRenderingMode.Transparent => "Transparent",
+                VRCFallbackRenderingMode.Fade => "Fade",
+                _ => string.Empty
+            };
+
+            tag += setter.Facing switch
+            {
+                VRCFallbackFacing.Default => string.Empty,
+                VRCFallbackFacing.DoubleSided => "DoubleSided",
+                _ => string.Empty
+            };
+
+            return tag;
         }
     }
 }
