@@ -1,0 +1,10 @@
+pre-push:
+  parallel: true
+  commands:
+    csharpier:
+      glob: "*.cs"
+      run: ~/.dotnet/tools/csharpier check .
+    cspell:
+      run: npx cspell "**/*" --no-progress
+    editorconfig:
+      run: npx editorconfig-checker

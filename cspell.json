@@ -35,6 +35,9 @@
     "*.dll"
   ],
   "enableFiletypes": [
-    "csharp"
+    "csharp",
+    "json",
+    "markdown",
+    "yaml"
   ]
 }
