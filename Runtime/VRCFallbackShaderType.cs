@@ -13,7 +13,7 @@ namespace Hrpnx.UnityExtensions.VRCFallbackSetter
         Sprite,
         Matcap,
         MobileToon,
-        Hidden
+        Hidden,
     }
 
     /// <summary>
@@ -24,7 +24,7 @@ namespace Hrpnx.UnityExtensions.VRCFallbackSetter
         Opaque,
         Cutout,
         Transparent,
-        Fade
+        Fade,
     }
 
     /// <summary>
@@ -33,6 +33,6 @@ namespace Hrpnx.UnityExtensions.VRCFallbackSetter
     public enum VRCFallbackFacing
     {
         Default,
-        DoubleSided
+        DoubleSided,
     }
 }
