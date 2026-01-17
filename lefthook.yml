@@ -8,3 +8,5 @@ pre-push:
       run: npm run lint:cspell
     editorconfig:
       run: npm run lint:editorconfig
+    secretlint:
+      run: npm run lint:secretlint
