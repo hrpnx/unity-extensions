@@ -1,6 +1,6 @@
 {
   "name": "dev.hrpnx.unity-extensions",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "displayName": "hrpnx's Unity Extensions",
   "description": "Some miscellaneous Unity utilities I use.",
   "unity": "2022.3",
