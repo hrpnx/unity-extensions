@@ -7,6 +7,8 @@
 /[Tt]emp/
 [Oo]bj/
 [Oo]bj.meta
+__Generated/
+__Generated.meta
 node_modules/
 /[Bb]uild/
 /[Bb]uilds/
