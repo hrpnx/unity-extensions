@@ -21,6 +21,7 @@
     "netstandard",
     "packager",
     "rerigferl",
+    "rhysd",
     "roslyn",
     "scriptable",
     "softprops",
