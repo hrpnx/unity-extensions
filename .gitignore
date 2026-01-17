@@ -5,7 +5,9 @@
 .utmp/
 /[Ll]ibrary/
 /[Tt]emp/
-/[Oo]bj/
+[Oo]bj/
+[Oo]bj.meta
+node_modules/
 /[Bb]uild/
 /[Bb]uilds/
 /[Ll]ogs/
@@ -41,6 +43,7 @@
 ExportedObj/
 .consulo/
 *.csproj
+!Analyzers.csproj
 *.unityproj
 *.sln
 *.suo

@@ -15,32 +15,40 @@ namespace Hrpnx.UnityExtensions.VRCFallbackSetter
         public override string QualifiedName => "dev.hrpnx.vrc-fallback-setter";
         public override string DisplayName => "VRC Fallback Setter";
 
-        protected override void Configure() => this
-            .InPhase(BuildPhase.Transforming)
-            .BeforePlugin("nadena.dev.modular-avatar")
-            .Run("Set VRCFallback", ctx =>
-            {
-                var setter = ctx.AvatarRootObject.GetComponentInChildren<VRCFallbackSetter>();
-                if (setter == null)
-                {
-                    return;
-                }
+        protected override void Configure() =>
+            this.InPhase(BuildPhase.Transforming)
+                .BeforePlugin("nadena.dev.modular-avatar")
+                .Run(
+                    "Set VRCFallback",
+                    ctx =>
+                    {
+                        var setter =
+                            ctx.AvatarRootObject.GetComponentInChildren<VRCFallbackSetter>();
+                        if (setter == null)
+                        {
+                            return;
+                        }
 
-                var avatarRoot = setter.gameObject.transform.parent?.gameObject;
-                if (avatarRoot == null)
-                {
-                    Debug.LogError($"VRCFallbackSetter component on '{setter.gameObject.name}' has no parent object. Please place it as a child of the avatar root.");
-                    return;
-                }
+                        var avatarRoot = setter.gameObject.transform.parent?.gameObject;
+                        if (avatarRoot == null)
+                        {
+                            Debug.LogError(
+                                $"VRCFallbackSetter component on '{setter.gameObject.name}' has no parent object. Please place it as a child of the avatar root."
+                            );
+                            return;
+                        }
 
-                if (!avatarRoot.GetComponent<VRCAvatarDescriptor>())
-                {
-                    Debug.LogError($"Parent object '{avatarRoot.name}' does not have VRCAvatarDescriptor component. VRCFallbackSetter must be placed under the avatar root.");
-                    return;
-                }
+                        if (!avatarRoot.GetComponent<VRCAvatarDescriptor>())
+                        {
+                            Debug.LogError(
+                                $"Parent object '{avatarRoot.name}' does not have VRCAvatarDescriptor component. VRCFallbackSetter must be placed under the avatar root."
+                            );
+                            return;
+                        }
 
-                SetFallback(avatarRoot, setter);
-            });
+                        SetFallback(avatarRoot, setter);
+                    }
+                );
 
         private void SetFallback(GameObject avatarRoot, VRCFallbackSetter setter)
         {
@@ -74,7 +82,9 @@ namespace Hrpnx.UnityExtensions.VRCFallbackSetter
                 }
             }
 
-            Debug.Log($"[VRCFallbackSetter] Set VRCFallback to \"{fallbackValue}\" for {processedCount} materials. (Excluded: {excludedCount})");
+            Debug.Log(
+                $"[VRCFallbackSetter] Set VRCFallback to \"{fallbackValue}\" for {processedCount} materials. (Excluded: {excludedCount})"
+            );
         }
 
         private static string BuildFallbackTag(VRCFallbackSetter setter)
@@ -87,14 +97,14 @@ namespace Hrpnx.UnityExtensions.VRCFallbackSetter
                 VRCFallbackRenderingMode.Cutout => "Cutout",
                 VRCFallbackRenderingMode.Transparent => "Transparent",
                 VRCFallbackRenderingMode.Fade => "Fade",
-                _ => string.Empty
+                _ => string.Empty,
             };
 
             tag += setter.Facing switch
             {
                 VRCFallbackFacing.Default => string.Empty,
                 VRCFallbackFacing.DoubleSided => "DoubleSided",
-                _ => string.Empty
+                _ => string.Empty,
             };
 
             return tag;

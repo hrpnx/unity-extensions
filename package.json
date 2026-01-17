@@ -1,6 +1,6 @@
 {
   "name": "dev.hrpnx.unity-extensions",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "displayName": "hrpnx's Unity Extensions",
   "description": "Some miscellaneous Unity utilities I use.",
   "unity": "2022.3",
@@ -10,5 +10,19 @@
   },
   "license": "MIT",
   "licenseUrl": "https://github.com/hrpnx/unity-extensions/blob/main/LICENSE",
-  "vpmDependencies": {}
+  "vpmDependencies": {},
+  "scripts": {
+    "lint": "run-p lint:*",
+    "lint:csharpier": "dotnet csharpier check .",
+    "lint:cspell": "cspell \"**/*\" --no-progress --gitignore",
+    "lint:editorconfig": "editorconfig-checker",
+    "lint:secretlint": "secretlint \"**/*\""
+  },
+  "devDependencies": {
+    "@secretlint/secretlint-rule-preset-recommend": "^11.3.0",
+    "cspell": "^8.17.5",
+    "editorconfig-checker": "^6.0.1",
+    "npm-run-all2": "^8.0.4",
+    "secretlint": "^11.3.0"
+  }
 }

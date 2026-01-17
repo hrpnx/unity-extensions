@@ -1,0 +1,12 @@
+pre-push:
+  parallel: true
+  commands:
+    csharpier:
+      glob: "*.cs"
+      run: npm run lint:csharpier
+    cspell:
+      run: npm run lint:cspell
+    editorconfig:
+      run: npm run lint:editorconfig
+    secretlint:
+      run: npm run lint:secretlint

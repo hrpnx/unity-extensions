@@ -10,7 +10,9 @@ using VRC.SDK3.Avatars.Components;
 using VRC.SDK3.Avatars.ScriptableObjects;
 using ExpressionControl = VRC.SDK3.Avatars.ScriptableObjects.VRCExpressionsMenu.Control;
 
-[assembly: ExportsPlugin(typeof(Hrpnx.UnityExtensions.BackLitMenuInstaller.BackLitMenuInstallerPlugin))]
+[assembly: ExportsPlugin(
+    typeof(Hrpnx.UnityExtensions.BackLitMenuInstaller.BackLitMenuInstallerPlugin)
+)]
 
 namespace Hrpnx.UnityExtensions.BackLitMenuInstaller
 {
@@ -24,32 +26,40 @@ namespace Hrpnx.UnityExtensions.BackLitMenuInstaller
         public override string QualifiedName => "dev.hrpnx.backlit-menu-installer";
         public override string DisplayName => "BackLit Menu Installer";
 
-        protected override void Configure() => this
-            .InPhase(BuildPhase.Transforming)
-            .BeforePlugin("nadena.dev.modular-avatar")
-            .Run("Install BackLit Menu", ctx =>
-            {
-                var installer = ctx.AvatarRootObject.GetComponentInChildren<BackLitMenuInstaller>();
-                if (installer == null)
-                {
-                    return;
-                }
+        protected override void Configure() =>
+            this.InPhase(BuildPhase.Transforming)
+                .BeforePlugin("nadena.dev.modular-avatar")
+                .Run(
+                    "Install BackLit Menu",
+                    ctx =>
+                    {
+                        var installer =
+                            ctx.AvatarRootObject.GetComponentInChildren<BackLitMenuInstaller>();
+                        if (installer == null)
+                        {
+                            return;
+                        }
 
-                var avatarRoot = installer.gameObject.transform.parent?.gameObject;
-                if (avatarRoot == null)
-                {
-                    Debug.LogError($"BackLitMenuInstaller component on '{installer.gameObject.name}' has no parent object. Please place it as a child of the avatar root.");
-                    return;
-                }
+                        var avatarRoot = installer.gameObject.transform.parent?.gameObject;
+                        if (avatarRoot == null)
+                        {
+                            Debug.LogError(
+                                $"BackLitMenuInstaller component on '{installer.gameObject.name}' has no parent object. Please place it as a child of the avatar root."
+                            );
+                            return;
+                        }
 
-                if (!avatarRoot.GetComponent<VRCAvatarDescriptor>())
-                {
-                    Debug.LogError($"Parent object '{avatarRoot.name}' does not have VRCAvatarDescriptor component. BackLitMenuInstaller must be placed under the avatar root.");
-                    return;
-                }
+                        if (!avatarRoot.GetComponent<VRCAvatarDescriptor>())
+                        {
+                            Debug.LogError(
+                                $"Parent object '{avatarRoot.name}' does not have VRCAvatarDescriptor component. BackLitMenuInstaller must be placed under the avatar root."
+                            );
+                            return;
+                        }
 
-                CreateMenu(avatarRoot, installer);
-            });
+                        CreateMenu(avatarRoot, installer);
+                    }
+                );
 
         private void CreateMenu(GameObject avatarRoot, BackLitMenuInstaller installer)
         {
@@ -66,7 +76,11 @@ namespace Hrpnx.UnityExtensions.BackLitMenuInstaller
             var animOnClip = CreateOnAnimationClip(renderers, avatarRoot.transform, installer);
             CreateAsset(animOnClip, Path.Combine(destDir, $"{BaseName}_On.anim"));
 
-            var animOffClip = CreateOffAnimationClip(renderers, avatarRoot.transform, installer.Exclusions);
+            var animOffClip = CreateOffAnimationClip(
+                renderers,
+                avatarRoot.transform,
+                installer.Exclusions
+            );
             CreateAsset(animOffClip, Path.Combine(destDir, $"{BaseName}_Off.anim"));
 
             var controller = CreateAnimatorController(animOnClip, animOffClip);
@@ -84,7 +98,11 @@ namespace Hrpnx.UnityExtensions.BackLitMenuInstaller
             return Path.Combine(packagePath, "__Generated", "BackLitMenuInstaller");
         }
 
-        private AnimationClip CreateOnAnimationClip(Renderer[] renderers, Transform rootTransform, BackLitMenuInstaller installer)
+        private AnimationClip CreateOnAnimationClip(
+            Renderer[] renderers,
+            Transform rootTransform,
+            BackLitMenuInstaller installer
+        )
         {
             var clip = new AnimationClip();
 
@@ -96,24 +114,112 @@ namespace Hrpnx.UnityExtensions.BackLitMenuInstaller
                 }
 
                 var transform = renderer.gameObject.transform;
-                AddAnimation(transform, rootTransform, clip, "material._UseBacklight", 1, installer.Exclusions);
-                AddAnimation(transform, rootTransform, clip, "material._BacklightColor.r", installer.Color.r, installer.Exclusions);
-                AddAnimation(transform, rootTransform, clip, "material._BacklightColor.g", installer.Color.g, installer.Exclusions);
-                AddAnimation(transform, rootTransform, clip, "material._BacklightColor.b", installer.Color.b, installer.Exclusions);
-                AddAnimation(transform, rootTransform, clip, "material._BacklightColor.a", installer.Color.a, installer.Exclusions);
-                AddAnimation(transform, rootTransform, clip, "material._BacklightMainStrength", installer.MainStrength, installer.Exclusions);
-                AddAnimation(transform, rootTransform, clip, "material._BacklightNormalStrength", installer.NormalStrength, installer.Exclusions);
-                AddAnimation(transform, rootTransform, clip, "material._BacklightBorder", installer.Border, installer.Exclusions);
-                AddAnimation(transform, rootTransform, clip, "material._BacklightBlur", installer.Blur, installer.Exclusions);
-                AddAnimation(transform, rootTransform, clip, "material._BacklightDirectivity", installer.Directivity, installer.Exclusions);
-                AddAnimation(transform, rootTransform, clip, "material._BacklightViewStrength", installer.ViewStrength, installer.Exclusions);
-                AddAnimation(transform, rootTransform, clip, "material._BacklightReceiveShadow", installer.ReceiveShadow, installer.Exclusions);
+                AddAnimation(
+                    transform,
+                    rootTransform,
+                    clip,
+                    "material._UseBacklight",
+                    1,
+                    installer.Exclusions
+                );
+                AddAnimation(
+                    transform,
+                    rootTransform,
+                    clip,
+                    "material._BacklightColor.r",
+                    installer.Color.r,
+                    installer.Exclusions
+                );
+                AddAnimation(
+                    transform,
+                    rootTransform,
+                    clip,
+                    "material._BacklightColor.g",
+                    installer.Color.g,
+                    installer.Exclusions
+                );
+                AddAnimation(
+                    transform,
+                    rootTransform,
+                    clip,
+                    "material._BacklightColor.b",
+                    installer.Color.b,
+                    installer.Exclusions
+                );
+                AddAnimation(
+                    transform,
+                    rootTransform,
+                    clip,
+                    "material._BacklightColor.a",
+                    installer.Color.a,
+                    installer.Exclusions
+                );
+                AddAnimation(
+                    transform,
+                    rootTransform,
+                    clip,
+                    "material._BacklightMainStrength",
+                    installer.MainStrength,
+                    installer.Exclusions
+                );
+                AddAnimation(
+                    transform,
+                    rootTransform,
+                    clip,
+                    "material._BacklightNormalStrength",
+                    installer.NormalStrength,
+                    installer.Exclusions
+                );
+                AddAnimation(
+                    transform,
+                    rootTransform,
+                    clip,
+                    "material._BacklightBorder",
+                    installer.Border,
+                    installer.Exclusions
+                );
+                AddAnimation(
+                    transform,
+                    rootTransform,
+                    clip,
+                    "material._BacklightBlur",
+                    installer.Blur,
+                    installer.Exclusions
+                );
+                AddAnimation(
+                    transform,
+                    rootTransform,
+                    clip,
+                    "material._BacklightDirectivity",
+                    installer.Directivity,
+                    installer.Exclusions
+                );
+                AddAnimation(
+                    transform,
+                    rootTransform,
+                    clip,
+                    "material._BacklightViewStrength",
+                    installer.ViewStrength,
+                    installer.Exclusions
+                );
+                AddAnimation(
+                    transform,
+                    rootTransform,
+                    clip,
+                    "material._BacklightReceiveShadow",
+                    installer.ReceiveShadow,
+                    installer.Exclusions
+                );
             }
 
             return clip;
         }
 
-        private AnimationClip CreateOffAnimationClip(Renderer[] renderers, Transform rootTransform, List<Material> exclusions)
+        private AnimationClip CreateOffAnimationClip(
+            Renderer[] renderers,
+            Transform rootTransform,
+            List<Material> exclusions
+        )
         {
             var clip = new AnimationClip();
 
@@ -125,21 +231,33 @@ namespace Hrpnx.UnityExtensions.BackLitMenuInstaller
                 }
 
                 var transform = renderer.gameObject.transform;
-                AddAnimation(transform, rootTransform, clip, "material._UseBacklight", 0, exclusions);
+                AddAnimation(
+                    transform,
+                    rootTransform,
+                    clip,
+                    "material._UseBacklight",
+                    0,
+                    exclusions
+                );
             }
 
             return clip;
         }
 
-        private AnimatorController CreateAnimatorController(AnimationClip onClip, AnimationClip offClip)
+        private AnimatorController CreateAnimatorController(
+            AnimationClip onClip,
+            AnimationClip offClip
+        )
         {
             var controller = new AnimatorController();
-            controller.AddParameter(new AnimatorControllerParameter
-            {
-                name = BaseName,
-                type = AnimatorControllerParameterType.Bool,
-                defaultBool = false,
-            });
+            controller.AddParameter(
+                new AnimatorControllerParameter
+                {
+                    name = BaseName,
+                    type = AnimatorControllerParameterType.Bool,
+                    defaultBool = false,
+                }
+            );
             controller.AddLayer(BaseName);
 
             var layer = controller.layers[0];
@@ -180,14 +298,18 @@ namespace Hrpnx.UnityExtensions.BackLitMenuInstaller
                 name = BaseName,
                 type = ExpressionControl.ControlType.Toggle,
                 value = 1,
-                parameter = new ExpressionControl.Parameter { name = BaseName }
+                parameter = new ExpressionControl.Parameter { name = BaseName },
             };
             menu.controls.Add(control);
 
             return menu;
         }
 
-        private static void AttachModularAvatarComponents(BackLitMenuInstaller installer, AnimatorController controller, VRCExpressionsMenu menu)
+        private static void AttachModularAvatarComponents(
+            BackLitMenuInstaller installer,
+            AnimatorController controller,
+            VRCExpressionsMenu menu
+        )
         {
             var gameObject = installer.gameObject;
 
@@ -199,13 +321,15 @@ namespace Hrpnx.UnityExtensions.BackLitMenuInstaller
             menuInstaller.menuToAppend = menu;
 
             var parameters = gameObject.AddComponent<ModularAvatarParameters>();
-            parameters.parameters.Add(new ParameterConfig
-            {
-                nameOrPrefix = BaseName,
-                defaultValue = installer.Default ? 1 : 0,
-                saved = installer.Saved,
-                syncType = ParameterSyncType.Bool
-            });
+            parameters.parameters.Add(
+                new ParameterConfig
+                {
+                    nameOrPrefix = BaseName,
+                    defaultValue = installer.Default ? 1 : 0,
+                    saved = installer.Saved,
+                    syncType = ParameterSyncType.Bool,
+                }
+            );
 
             var mergeAnimator = gameObject.AddComponent<ModularAvatarMergeAnimator>();
             mergeAnimator.animator = controller;
@@ -215,7 +339,14 @@ namespace Hrpnx.UnityExtensions.BackLitMenuInstaller
             mergeAnimator.layerPriority = 1;
         }
 
-        private void AddAnimation(Transform transform, Transform rootTransform, AnimationClip clip, string propertyName, float value, List<Material> exclusions)
+        private void AddAnimation(
+            Transform transform,
+            Transform rootTransform,
+            AnimationClip clip,
+            string propertyName,
+            float value,
+            List<Material> exclusions
+        )
         {
             string path = GetRelativePath(transform, rootTransform);
             if (path == null)
@@ -231,7 +362,11 @@ namespace Hrpnx.UnityExtensions.BackLitMenuInstaller
 
             foreach (var material in renderer.sharedMaterials)
             {
-                if (material == null || !material.shader.name.Contains("lilToon") || (exclusions != null && exclusions.Contains(material)))
+                if (
+                    material == null
+                    || !material.shader.name.Contains("lilToon")
+                    || (exclusions != null && exclusions.Contains(material))
+                )
                 {
                     continue;
                 }
@@ -258,7 +393,13 @@ namespace Hrpnx.UnityExtensions.BackLitMenuInstaller
             return parent == root ? path : null;
         }
 
-        private static void SetCurve(AnimationClip clip, string propertyName, float value, string path, Type type)
+        private static void SetCurve(
+            AnimationClip clip,
+            string propertyName,
+            float value,
+            string path,
+            Type type
+        )
         {
             foreach (var binding in AnimationUtility.GetCurveBindings(clip))
             {
@@ -277,7 +418,7 @@ namespace Hrpnx.UnityExtensions.BackLitMenuInstaller
             {
                 path = path,
                 type = type,
-                propertyName = propertyName
+                propertyName = propertyName,
             };
 
             var curve = new AnimationCurve();

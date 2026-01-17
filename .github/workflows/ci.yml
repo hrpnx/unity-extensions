@@ -1,0 +1,36 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install dependencies
+        run: |
+          dotnet restore Analyzers.csproj
+          dotnet tool restore
+          npm install
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Run dotnet format
+        run: dotnet format Analyzers.csproj --verify-no-changes --verbosity diagnostic
