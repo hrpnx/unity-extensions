@@ -21,6 +21,7 @@
     "netstandard",
     "packager",
     "rerigferl",
+    "reviewdog",
     "roslyn",
     "scriptable",
     "softprops",

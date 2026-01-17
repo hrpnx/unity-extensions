@@ -26,10 +26,10 @@ jobs:
           OLD_VERSION=$(git show HEAD~1:package.json 2>/dev/null | jq -r '.version' || echo "")
           NEW_VERSION=$(jq -r '.version' package.json)
           if [ "$OLD_VERSION" != "$NEW_VERSION" ]; then
-            echo "changed=true" >> $GITHUB_OUTPUT
+            echo "changed=true" >> "$GITHUB_OUTPUT"
             echo "Version changed: $OLD_VERSION -> $NEW_VERSION"
           else
-            echo "changed=false" >> $GITHUB_OUTPUT
+            echo "changed=false" >> "$GITHUB_OUTPUT"
             echo "Version unchanged: $NEW_VERSION"
           fi
 
@@ -43,7 +43,7 @@ jobs:
 
       - name: "Build"
         id: "build"
-        uses: "docker://ghcr.io/rerigferl/vpm-packager:latest"
+        uses: "docker://ghcr.io/rerigferl/vpm-packager@sha256:8952f952108c77bff994c7e013ab26a32d768189d2f93e7fe35ad58b00ce59ea"
         with:
           args: "-z -u"
 
