@@ -69,34 +69,6 @@ dotnet_naming_symbols.public_members.applicable_accessibilities = public
 
 dotnet_naming_style.pascal_case.capitalization = pascal_case
 
-# StyleCop rules
-# SA1101: Prefix local calls with this
-dotnet_diagnostic.SA1101.severity = none
-# SA1200: Using directives should be placed correctly
-dotnet_diagnostic.SA1200.severity = none
-# SA1309: Field names should not begin with underscore (conflict with our convention)
-dotnet_diagnostic.SA1309.severity = none
-# SA1600: Elements should be documented
-dotnet_diagnostic.SA1600.severity = none
-# SA1601: Partial elements should be documented
-dotnet_diagnostic.SA1601.severity = none
-# SA1602: Enumeration items should be documented
-dotnet_diagnostic.SA1602.severity = none
-# SA1633: File should have header
-dotnet_diagnostic.SA1633.severity = none
-# SA1629: Documentation text should end with a period
-dotnet_diagnostic.SA1629.severity = none
-# SA1009: Closing parenthesis should not be preceded by a space (conflicts with CSharpier)
-dotnet_diagnostic.SA1009.severity = none
-# SA1111: Closing parenthesis should be on line of last parameter (conflicts with CSharpier)
-dotnet_diagnostic.SA1111.severity = none
-# SA1401: Field should be private (Unity serialized fields need to be public)
-dotnet_diagnostic.SA1401.severity = none
-# SA1516: Elements should be separated by blank line (conflicts with CSharpier)
-dotnet_diagnostic.SA1516.severity = none
-# SA1204: Static members should appear before non-static members
-dotnet_diagnostic.SA1204.severity = none
-
 # CA rules adjustments for Unity
 # CA1822: Mark members as static
 dotnet_diagnostic.CA1822.severity = suggestion
