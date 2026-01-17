@@ -12,7 +12,7 @@ Some miscellaneous Unity utilities I use.
 
 ## 📌 Features
 
-### VRC Fallback Setter
+### 🥷 VRC Fallback Setter
 
 アバタービルド時に全マテリアルの VRChat Custom Safety Fallback を**破壊的に**一括設定するコンポーネントです。
 
@@ -39,7 +39,7 @@ Some miscellaneous Unity utilities I use.
 4. (任意) 除外したいマテリアルを Exclusions リストに追加
 5. アバターをビルドすると自動的に適用されます
 
-### BackLit Menu Installer
+### ✨ BackLit Menu Installer
 
 アバタービルド時に lilToon の BackLit (逆光) メニューを自動生成するコンポーネントです。
 
