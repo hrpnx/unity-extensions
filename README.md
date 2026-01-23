@@ -77,11 +77,11 @@ Some miscellaneous Unity utilities I use.
 
 ### 📂 BulkMat
 
-指定フォルダ内の lilToon マテリアルにプロパティ設定を一括適用するエディターウィンドウです。
+指定フォルダ内の lilToon マテリアルに lilToon プリセットを一括適用するエディターウィンドウです。
 
 **主な機能：**
 
-- フォルダ内のマテリアルにプロパティ設定を一括適用
+- フォルダ内のマテリアルに lilToon プリセットを一括適用
 - サブフォルダを含めるかどうかの切り替え
 - lilToon 以外のシェーダーは自動スキップ
 
@@ -89,7 +89,7 @@ Some miscellaneous Unity utilities I use.
 
 1. メニューから `Tools > BulkMat` を選択
 2. 対象フォルダにマテリアルが含まれるフォルダを設定
-3. 適用設定に MaterialPropertyConfig を設定
+3. 適用設定に lilToon プリセットを設定
 4. 「マテリアルに一括適用」ボタンをクリック
 
 ## 📋 Requirements
