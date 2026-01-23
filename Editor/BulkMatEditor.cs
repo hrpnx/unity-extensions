@@ -8,11 +8,11 @@ namespace Hrpnx.UnityExtensions.BulkMat
     {
         private const string LILTOON_SHADER_NAME = "lilToon";
         private const string PREF_TARGET_DIRECTORY = "BulkMat_TargetDirectory";
-        private const string PREF_CONFIG = "BulkMat_Config";
+        private const string PREF_PRESET = "BulkMat_Preset";
         private const string PREF_INCLUDE_SUBFOLDERS = "BulkMat_IncludeSubfolders";
 
         private DefaultAsset _targetDirectory;
-        private ScriptableObject _config;
+        private ScriptableObject _preset;
         private bool _includeSubfolders = true;
 
         [MenuItem("Tools/BulkMat")]
@@ -40,10 +40,10 @@ namespace Hrpnx.UnityExtensions.BulkMat
                 _targetDirectory = AssetDatabase.LoadAssetAtPath<DefaultAsset>(directoryPath);
             }
 
-            string configPath = EditorPrefs.GetString(PREF_CONFIG, "");
-            if (!string.IsNullOrEmpty(configPath))
+            string presetPath = EditorPrefs.GetString(PREF_PRESET, "");
+            if (!string.IsNullOrEmpty(presetPath))
             {
-                _config = AssetDatabase.LoadAssetAtPath<ScriptableObject>(configPath);
+                _preset = AssetDatabase.LoadAssetAtPath<ScriptableObject>(presetPath);
             }
 
             _includeSubfolders = EditorPrefs.GetBool(PREF_INCLUDE_SUBFOLDERS, true);
@@ -54,8 +54,8 @@ namespace Hrpnx.UnityExtensions.BulkMat
             string directoryPath = _targetDirectory != null ? AssetDatabase.GetAssetPath(_targetDirectory) : "";
             EditorPrefs.SetString(PREF_TARGET_DIRECTORY, directoryPath);
 
-            string configPath = _config != null ? AssetDatabase.GetAssetPath(_config) : "";
-            EditorPrefs.SetString(PREF_CONFIG, configPath);
+            string presetPath = _preset != null ? AssetDatabase.GetAssetPath(_preset) : "";
+            EditorPrefs.SetString(PREF_PRESET, presetPath);
 
             EditorPrefs.SetBool(PREF_INCLUDE_SUBFOLDERS, _includeSubfolders);
         }
@@ -68,7 +68,7 @@ namespace Hrpnx.UnityExtensions.BulkMat
             EditorGUILayout.HelpBox(
                 "使い方:\n" +
                 "1. 対象フォルダにマテリアルが含まれるフォルダを設定\n" +
-                "2. 適用設定にMaterialPropertyConfigを設定\n" +
+                "2. lilToonプリセットを設定\n" +
                 "3. 「マテリアルに一括適用」ボタンをクリック\n\n" +
                 "※ lilToon以外のシェーダーは自動的にスキップされます",
                 MessageType.Info);
@@ -91,8 +91,8 @@ namespace Hrpnx.UnityExtensions.BulkMat
             EditorGUILayout.Space();
 
             EditorGUILayout.BeginHorizontal();
-            EditorGUILayout.LabelField("適用設定:", GUILayout.Width(100));
-            _config = (ScriptableObject)EditorGUILayout.ObjectField(_config, typeof(ScriptableObject), false);
+            EditorGUILayout.LabelField("プリセット:", GUILayout.Width(100));
+            _preset = (ScriptableObject)EditorGUILayout.ObjectField(_preset, typeof(ScriptableObject), false);
             EditorGUILayout.EndHorizontal();
 
             _includeSubfolders = EditorGUILayout.Toggle("サブフォルダを含める", _includeSubfolders);
@@ -110,7 +110,7 @@ namespace Hrpnx.UnityExtensions.BulkMat
 
             EditorGUILayout.Space();
 
-            GUI.enabled = _targetDirectory != null && _config != null;
+            GUI.enabled = _targetDirectory != null && _preset != null;
             if (GUILayout.Button("マテリアルに一括適用", GUILayout.Height(30)))
             {
                 ApplyToDirectory();
@@ -140,9 +140,9 @@ namespace Hrpnx.UnityExtensions.BulkMat
                 return;
             }
 
-            if (_config == null)
+            if (_preset == null)
             {
-                Debug.LogError("適用設定が指定されていません");
+                Debug.LogError("プリセットが指定されていません");
                 return;
             }
 
@@ -195,22 +195,22 @@ namespace Hrpnx.UnityExtensions.BulkMat
                 }
             }
 
-            int processed = ApplyConfigToMaterials(materials, _config);
+            int processed = ApplyPresetToMaterials(materials, _preset);
 
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
 
             Debug.Log($"ディレクトリ一括適用完了: {directoryPath}\n" +
-                      $"{processed}個のlilToonマテリアルに設定を適用しました (全{materials.Count}個中)");
+                      $"{processed}個のlilToonマテリアルにプリセットを適用しました (全{materials.Count}個中)");
         }
 
-        private int ApplyConfigToMaterials(List<Material> materials, ScriptableObject config)
+        private int ApplyPresetToMaterials(List<Material> materials, ScriptableObject preset)
         {
-            var serializedConfig = new SerializedObject(config);
+            var serializedPreset = new SerializedObject(preset);
 
-            var colorsProperty = serializedConfig.FindProperty("colors");
-            var floatsProperty = serializedConfig.FindProperty("floats");
-            var vectorsProperty = serializedConfig.FindProperty("vectors");
+            var colorsProperty = serializedPreset.FindProperty("colors");
+            var floatsProperty = serializedPreset.FindProperty("floats");
+            var vectorsProperty = serializedPreset.FindProperty("vectors");
 
             int processedCount = 0;
 
@@ -223,7 +223,7 @@ namespace Hrpnx.UnityExtensions.BulkMat
                     continue;
                 }
 
-                Undo.RecordObject(material, "マテリアル設定を適用");
+                Undo.RecordObject(material, "lilToonプリセットを適用");
 
                 if (colorsProperty != null)
                 {
