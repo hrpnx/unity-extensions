@@ -4,7 +4,7 @@ using UnityEngine;
 
 namespace Hrpnx.UnityExtensions.BulkMat
 {
-    public class BulkMatEditor : EditorWindow
+    public class BulkMat : EditorWindow
     {
         private const string LILTOON_SHADER_NAME = "lilToon";
         private const string PREF_TARGET_DIRECTORY = "BulkMat_TargetDirectory";
@@ -18,7 +18,7 @@ namespace Hrpnx.UnityExtensions.BulkMat
         [MenuItem("Tools/BulkMat")]
         public static void ShowWindow()
         {
-            var window = GetWindow<BulkMatEditor>("BulkMat");
+            var window = GetWindow<BulkMat>("BulkMat");
             window.Show();
         }
 
