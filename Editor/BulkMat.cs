@@ -200,8 +200,10 @@ namespace Hrpnx.UnityExtensions.BulkMat
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
 
-            Debug.Log($"ディレクトリ一括適用完了: {directoryPath}\n" +
-                      $"{processed}個のlilToonマテリアルにプリセットを適用しました (全{materials.Count}個中)");
+            Debug.Log(
+                $"ディレクトリ一括適用完了: {directoryPath}\n"
+                    + $"{processed}個のlilToonマテリアルにプリセットを適用しました (全{materials.Count}個中)"
+            );
         }
 
         private int ApplyPresetToMaterials(List<Material> materials, ScriptableObject preset)
