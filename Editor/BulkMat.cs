@@ -51,7 +51,8 @@ namespace Hrpnx.UnityExtensions.BulkMat
 
         private void SaveSettings()
         {
-            string directoryPath = _targetDirectory != null ? AssetDatabase.GetAssetPath(_targetDirectory) : "";
+            string directoryPath =
+                _targetDirectory != null ? AssetDatabase.GetAssetPath(_targetDirectory) : "";
             EditorPrefs.SetString(PREF_TARGET_DIRECTORY, directoryPath);
 
             string presetPath = _preset != null ? AssetDatabase.GetAssetPath(_preset) : "";
@@ -66,12 +67,13 @@ namespace Hrpnx.UnityExtensions.BulkMat
             EditorGUILayout.Space();
 
             EditorGUILayout.HelpBox(
-                "使い方:\n" +
-                "1. 対象フォルダにマテリアルが含まれるフォルダを設定\n" +
-                "2. lilToonプリセットを設定\n" +
-                "3. 「マテリアルに一括適用」ボタンをクリック\n\n" +
-                "※ lilToon以外のシェーダーは自動的にスキップされます",
-                MessageType.Info);
+                "使い方:\n"
+                    + "1. 対象フォルダにマテリアルが含まれるフォルダを設定\n"
+                    + "2. lilToonプリセットを設定\n"
+                    + "3. 「マテリアルに一括適用」ボタンをクリック\n\n"
+                    + "※ lilToon以外のシェーダーは自動的にスキップされます",
+                MessageType.Info
+            );
 
             EditorGUILayout.Space();
 
@@ -79,7 +81,8 @@ namespace Hrpnx.UnityExtensions.BulkMat
 
             EditorGUILayout.BeginHorizontal();
             EditorGUILayout.LabelField("対象フォルダ:", GUILayout.Width(100));
-            _targetDirectory = (DefaultAsset)EditorGUILayout.ObjectField(_targetDirectory, typeof(DefaultAsset), false);
+            _targetDirectory = (DefaultAsset)
+                EditorGUILayout.ObjectField(_targetDirectory, typeof(DefaultAsset), false);
             EditorGUILayout.EndHorizontal();
 
             if (_targetDirectory != null)
@@ -92,7 +95,8 @@ namespace Hrpnx.UnityExtensions.BulkMat
 
             EditorGUILayout.BeginHorizontal();
             EditorGUILayout.LabelField("プリセット:", GUILayout.Width(100));
-            _preset = (ScriptableObject)EditorGUILayout.ObjectField(_preset, typeof(ScriptableObject), false);
+            _preset = (ScriptableObject)
+                EditorGUILayout.ObjectField(_preset, typeof(ScriptableObject), false);
             EditorGUILayout.EndHorizontal();
 
             _includeSubFolders = EditorGUILayout.Toggle("サブフォルダを含める", _includeSubFolders);
@@ -103,7 +107,10 @@ namespace Hrpnx.UnityExtensions.BulkMat
             {
                 string directoryPath = AssetDatabase.GetAssetPath(_targetDirectory);
                 int materialCount = CountMaterialsInDirectory(directoryPath, _includeSubFolders);
-                EditorGUILayout.LabelField($"検出マテリアル数: {materialCount}", EditorStyles.miniLabel);
+                EditorGUILayout.LabelField(
+                    $"検出マテリアル数: {materialCount}",
+                    EditorStyles.miniLabel
+                );
             }
 
             EditorGUILayout.EndVertical();
@@ -156,10 +163,15 @@ namespace Hrpnx.UnityExtensions.BulkMat
             List<Material> materials;
             if (_includeSubFolders)
             {
-                string[] materialGuids = AssetDatabase.FindAssets("t:Material", new[] { directoryPath });
+                string[] materialGuids = AssetDatabase.FindAssets(
+                    "t:Material",
+                    new[] { directoryPath }
+                );
                 if (materialGuids.Length == 0)
                 {
-                    Debug.LogWarning($"指定されたフォルダ内にマテリアルが見つかりませんでした: {directoryPath}");
+                    Debug.LogWarning(
+                        $"指定されたフォルダ内にマテリアルが見つかりませんでした: {directoryPath}"
+                    );
                     return;
                 }
 
@@ -179,7 +191,9 @@ namespace Hrpnx.UnityExtensions.BulkMat
                 string[] files = System.IO.Directory.GetFiles(directoryPath, "*.mat");
                 if (files.Length == 0)
                 {
-                    Debug.LogWarning($"指定されたフォルダ内にマテリアルが見つかりませんでした: {directoryPath}");
+                    Debug.LogWarning(
+                        $"指定されたフォルダ内にマテリアルが見つかりませんでした: {directoryPath}"
+                    );
                     return;
                 }
 
@@ -218,7 +232,8 @@ namespace Hrpnx.UnityExtensions.BulkMat
 
             foreach (var material in materials)
             {
-                if (material == null) continue;
+                if (material == null)
+                    continue;
 
                 if (material.shader == null || !material.shader.name.Contains(LILTOON_SHADER_NAME))
                 {
@@ -263,7 +278,9 @@ namespace Hrpnx.UnityExtensions.BulkMat
                     {
                         var vectorElement = vectorsProperty.GetArrayElementAtIndex(i);
                         string vectorName = vectorElement.FindPropertyRelative("name").stringValue;
-                        Vector4 vectorValue = vectorElement.FindPropertyRelative("value").vector4Value;
+                        Vector4 vectorValue = vectorElement
+                            .FindPropertyRelative("value")
+                            .vector4Value;
 
                         if (material.HasProperty(vectorName))
                         {
