@@ -233,7 +233,9 @@ namespace Hrpnx.UnityExtensions.BulkMat
             foreach (var material in materials)
             {
                 if (material == null)
+                {
                     continue;
+                }
 
                 if (material.shader == null || !material.shader.name.Contains(LILTOON_SHADER_NAME))
                 {
