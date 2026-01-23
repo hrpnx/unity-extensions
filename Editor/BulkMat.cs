@@ -9,11 +9,11 @@ namespace Hrpnx.UnityExtensions.BulkMat
         private const string LILTOON_SHADER_NAME = "lilToon";
         private const string PREF_TARGET_DIRECTORY = "BulkMat_TargetDirectory";
         private const string PREF_PRESET = "BulkMat_Preset";
-        private const string PREF_INCLUDE_SUBFOLDERS = "BulkMat_IncludeSubfolders";
+        private const string PREF_INCLUDE_SUBFOLDERS = "BulkMat_IncludeSubFolders";
 
         private DefaultAsset _targetDirectory;
         private ScriptableObject _preset;
-        private bool _includeSubfolders = true;
+        private bool _includeSubFolders = true;
 
         [MenuItem("Tools/BulkMat")]
         public static void ShowWindow()
@@ -46,7 +46,7 @@ namespace Hrpnx.UnityExtensions.BulkMat
                 _preset = AssetDatabase.LoadAssetAtPath<ScriptableObject>(presetPath);
             }
 
-            _includeSubfolders = EditorPrefs.GetBool(PREF_INCLUDE_SUBFOLDERS, true);
+            _includeSubFolders = EditorPrefs.GetBool(PREF_INCLUDE_SUBFOLDERS, true);
         }
 
         private void SaveSettings()
@@ -57,12 +57,12 @@ namespace Hrpnx.UnityExtensions.BulkMat
             string presetPath = _preset != null ? AssetDatabase.GetAssetPath(_preset) : "";
             EditorPrefs.SetString(PREF_PRESET, presetPath);
 
-            EditorPrefs.SetBool(PREF_INCLUDE_SUBFOLDERS, _includeSubfolders);
+            EditorPrefs.SetBool(PREF_INCLUDE_SUBFOLDERS, _includeSubFolders);
         }
 
         private void OnGUI()
         {
-            EditorGUILayout.LabelField("ディレクトリ一括適用ツール", EditorStyles.boldLabel);
+            EditorGUILayout.LabelField("lilToon プリセット一括適用ツール", EditorStyles.boldLabel);
             EditorGUILayout.Space();
 
             EditorGUILayout.HelpBox(
@@ -95,14 +95,14 @@ namespace Hrpnx.UnityExtensions.BulkMat
             _preset = (ScriptableObject)EditorGUILayout.ObjectField(_preset, typeof(ScriptableObject), false);
             EditorGUILayout.EndHorizontal();
 
-            _includeSubfolders = EditorGUILayout.Toggle("サブフォルダを含める", _includeSubfolders);
+            _includeSubFolders = EditorGUILayout.Toggle("サブフォルダを含める", _includeSubFolders);
 
             EditorGUILayout.Space();
 
             if (_targetDirectory != null)
             {
                 string directoryPath = AssetDatabase.GetAssetPath(_targetDirectory);
-                int materialCount = CountMaterialsInDirectory(directoryPath, _includeSubfolders);
+                int materialCount = CountMaterialsInDirectory(directoryPath, _includeSubFolders);
                 EditorGUILayout.LabelField($"検出マテリアル数: {materialCount}", EditorStyles.miniLabel);
             }
 
@@ -118,9 +118,9 @@ namespace Hrpnx.UnityExtensions.BulkMat
             GUI.enabled = true;
         }
 
-        private int CountMaterialsInDirectory(string directoryPath, bool includeSubfolders)
+        private int CountMaterialsInDirectory(string directoryPath, bool includeSubFolders)
         {
-            if (includeSubfolders)
+            if (includeSubFolders)
             {
                 string[] guids = AssetDatabase.FindAssets("t:Material", new[] { directoryPath });
                 return guids.Length;
@@ -154,7 +154,7 @@ namespace Hrpnx.UnityExtensions.BulkMat
             }
 
             List<Material> materials;
-            if (_includeSubfolders)
+            if (_includeSubFolders)
             {
                 string[] materialGuids = AssetDatabase.FindAssets("t:Material", new[] { directoryPath });
                 if (materialGuids.Length == 0)

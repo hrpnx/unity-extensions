@@ -1,5 +1,6 @@
 {
   "name": "dev.hrpnx.unity-extensions",
+  "type": "module",
   "version": "0.5.0",
   "displayName": "hrpnx's Unity Extensions",
   "description": "Some miscellaneous Unity utilities I use.",
