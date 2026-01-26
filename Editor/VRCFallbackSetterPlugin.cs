@@ -29,24 +29,7 @@ namespace Hrpnx.UnityExtensions.VRCFallbackSetter
                             return;
                         }
 
-                        var avatarRoot = setter.gameObject.transform.parent?.gameObject;
-                        if (avatarRoot == null)
-                        {
-                            Debug.LogError(
-                                $"VRCFallbackSetter component on '{setter.gameObject.name}' has no parent object. Please place it as a child of the avatar root."
-                            );
-                            return;
-                        }
-
-                        if (!avatarRoot.GetComponent<VRCAvatarDescriptor>())
-                        {
-                            Debug.LogError(
-                                $"Parent object '{avatarRoot.name}' does not have VRCAvatarDescriptor component. VRCFallbackSetter must be placed under the avatar root."
-                            );
-                            return;
-                        }
-
-                        SetFallback(avatarRoot, setter);
+                        SetFallback(ctx.AvatarRootObject, setter);
                     }
                 );
 
