@@ -40,24 +40,7 @@ namespace Hrpnx.UnityExtensions.BackLitMenuInstaller
                             return;
                         }
 
-                        var avatarRoot = installer.gameObject.transform.parent?.gameObject;
-                        if (avatarRoot == null)
-                        {
-                            Debug.LogError(
-                                $"BackLitMenuInstaller component on '{installer.gameObject.name}' has no parent object. Please place it as a child of the avatar root."
-                            );
-                            return;
-                        }
-
-                        if (!avatarRoot.GetComponent<VRCAvatarDescriptor>())
-                        {
-                            Debug.LogError(
-                                $"Parent object '{avatarRoot.name}' does not have VRCAvatarDescriptor component. BackLitMenuInstaller must be placed under the avatar root."
-                            );
-                            return;
-                        }
-
-                        CreateMenu(avatarRoot, installer);
+                        CreateMenu(ctx.AvatarRootObject, installer);
                     }
                 );
 
