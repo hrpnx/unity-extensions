@@ -111,6 +111,32 @@ Some miscellaneous Unity utilities I use.
 2. 「シーン参照を確認」ボタンでシーンからの参照状況を取得
 3. 不要なフォルダを選択して「選択した N フォルダを削除」をクリック
 
+### 💨 CheekPuff Resetter
+
+フェイシャルトラッキングで頬をふくらませる動作をトリガーとして、引っ張られて固定された頬の PhysBone をリセットするコンポーネントです。
+
+**主な機能：**
+
+- `CheekPuffLeft` / `CheekPuffRight` OSC パラメータが閾値を超えた瞬間に対象 PhysBone をリセット
+- Modular Avatar 経由で FX レイヤーを自動生成・マージ
+- 左右独立した FX レイヤー構成
+
+**設定項目：**
+
+| 項目        | 説明                                                             |
+| ----------- | ---------------------------------------------------------------- |
+| Threshold   | リセットを発動する CheekPuff パラメータの閾値 (0–1、デフォルト 0.5) |
+| Cheek Bone L | VRCPhysBone がついた GameObject（左頬）                        |
+| Cheek Bone R | VRCPhysBone がついた GameObject（右頬）                        |
+
+**使い方：**
+
+1. アバター配下に空の GameObject を作成
+2. `CheekPuffResetter` コンポーネントを追加
+3. Cheek Bone L / R に VRCPhysBone がついた GameObject を設定
+4. (任意) Threshold を調整
+5. アバターをビルドすると FX レイヤーが自動生成されます
+
 ### 🦴 Sync Clothing Bone Transforms
 
 衣装オブジェクトのボーンにアバター本体のトランスフォームを同期するコンテキストメニューコマンドです。
