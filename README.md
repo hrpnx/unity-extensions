@@ -113,7 +113,7 @@ Some miscellaneous Unity utilities I use.
 
 ### 💨 CheekPuff Resetter
 
-頬膨らみ（CheekPuff）トラッキングで PhysBone がずれる問題を自動修正するコンポーネントです。
+フェイシャルトラッキングで頬をふくらませる動作をトリガーとして、引っ張られて固定された頬の PhysBone をリセットするコンポーネントです。
 
 **主な機能：**
 
