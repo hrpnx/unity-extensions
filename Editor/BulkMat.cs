@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using lilToon;
 using UnityEditor;
 using UnityEngine;
 
@@ -10,10 +11,14 @@ namespace Hrpnx.UnityExtensions.BulkMat
         private const string PREF_TARGET_DIRECTORY = "BulkMat_TargetDirectory";
         private const string PREF_PRESET = "BulkMat_Preset";
         private const string PREF_INCLUDE_SUBFOLDERS = "BulkMat_IncludeSubFolders";
+        private const string PREF_OVERRIDE_OUTLINE = "BulkMat_OverrideOutline";
+        private const string PREF_USE_OUTLINE = "BulkMat_UseOutline";
 
         private DefaultAsset _targetDirectory;
         private ScriptableObject _preset;
         private bool _includeSubFolders = true;
+        private bool _overrideOutline = false;
+        private bool _useOutline = true;
 
         [MenuItem("Tools/BulkMat")]
         public static void ShowWindow()
@@ -47,6 +52,8 @@ namespace Hrpnx.UnityExtensions.BulkMat
             }
 
             _includeSubFolders = EditorPrefs.GetBool(PREF_INCLUDE_SUBFOLDERS, true);
+            _overrideOutline = EditorPrefs.GetBool(PREF_OVERRIDE_OUTLINE, false);
+            _useOutline = EditorPrefs.GetBool(PREF_USE_OUTLINE, true);
         }
 
         private void SaveSettings()
@@ -59,6 +66,8 @@ namespace Hrpnx.UnityExtensions.BulkMat
             EditorPrefs.SetString(PREF_PRESET, presetPath);
 
             EditorPrefs.SetBool(PREF_INCLUDE_SUBFOLDERS, _includeSubFolders);
+            EditorPrefs.SetBool(PREF_OVERRIDE_OUTLINE, _overrideOutline);
+            EditorPrefs.SetBool(PREF_USE_OUTLINE, _useOutline);
         }
 
         private void OnGUI()
@@ -100,6 +109,15 @@ namespace Hrpnx.UnityExtensions.BulkMat
             EditorGUILayout.EndHorizontal();
 
             _includeSubFolders = EditorGUILayout.Toggle("サブフォルダを含める", _includeSubFolders);
+
+            EditorGUILayout.Space();
+
+            _overrideOutline = EditorGUILayout.Toggle("輪郭線を上書き", _overrideOutline);
+            GUI.enabled = _overrideOutline;
+            EditorGUI.indentLevel++;
+            _useOutline = EditorGUILayout.Toggle("輪郭線を有効にする", _useOutline);
+            EditorGUI.indentLevel--;
+            GUI.enabled = true;
 
             EditorGUILayout.Space();
 
@@ -209,7 +227,8 @@ namespace Hrpnx.UnityExtensions.BulkMat
                 }
             }
 
-            int processed = ApplyPresetToMaterials(materials, _preset);
+            bool? outlineOverride = _overrideOutline ? _useOutline : (bool?)null;
+            int processed = ApplyPresetToMaterials(materials, _preset, outlineOverride);
 
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
@@ -220,13 +239,18 @@ namespace Hrpnx.UnityExtensions.BulkMat
             );
         }
 
-        private int ApplyPresetToMaterials(List<Material> materials, ScriptableObject preset)
+        private int ApplyPresetToMaterials(
+            List<Material> materials,
+            ScriptableObject config,
+            bool? outlineOverride
+        )
         {
-            var serializedPreset = new SerializedObject(preset);
+            bool isLilToonPreset = config is lilToonPreset;
 
-            var colorsProperty = serializedPreset.FindProperty("colors");
-            var floatsProperty = serializedPreset.FindProperty("floats");
-            var vectorsProperty = serializedPreset.FindProperty("vectors");
+            var serializedConfig = new SerializedObject(config);
+            var colorsProperty = serializedConfig.FindProperty("colors");
+            var floatsProperty = serializedConfig.FindProperty("floats");
+            var vectorsProperty = serializedConfig.FindProperty("vectors");
 
             int processedCount = 0;
 
@@ -244,50 +268,23 @@ namespace Hrpnx.UnityExtensions.BulkMat
 
                 Undo.RecordObject(material, "lilToonプリセットを適用");
 
-                if (colorsProperty != null)
+                if (isLilToonPreset)
                 {
-                    for (int i = 0; i < colorsProperty.arraySize; i++)
-                    {
-                        var colorElement = colorsProperty.GetArrayElementAtIndex(i);
-                        string colorName = colorElement.FindPropertyRelative("name").stringValue;
-                        Color colorValue = colorElement.FindPropertyRelative("value").colorValue;
-
-                        if (material.HasProperty(colorName))
-                        {
-                            material.SetColor(colorName, colorValue);
-                        }
-                    }
+                    var preset = (lilToonPreset)config;
+                    lilToonPreset.ApplyPreset(material, preset, false);
+                    ApplyOutline(material, preset, outlineOverride);
                 }
-
-                if (floatsProperty != null)
+                else
                 {
-                    for (int i = 0; i < floatsProperty.arraySize; i++)
+                    ApplyPropertiesManually(
+                        material,
+                        colorsProperty,
+                        floatsProperty,
+                        vectorsProperty
+                    );
+                    if (outlineOverride.HasValue)
                     {
-                        var floatElement = floatsProperty.GetArrayElementAtIndex(i);
-                        string floatName = floatElement.FindPropertyRelative("name").stringValue;
-                        float floatValue = floatElement.FindPropertyRelative("value").floatValue;
-
-                        if (material.HasProperty(floatName))
-                        {
-                            material.SetFloat(floatName, floatValue);
-                        }
-                    }
-                }
-
-                if (vectorsProperty != null)
-                {
-                    for (int i = 0; i < vectorsProperty.arraySize; i++)
-                    {
-                        var vectorElement = vectorsProperty.GetArrayElementAtIndex(i);
-                        string vectorName = vectorElement.FindPropertyRelative("name").stringValue;
-                        Vector4 vectorValue = vectorElement
-                            .FindPropertyRelative("value")
-                            .vector4Value;
-
-                        if (material.HasProperty(vectorName))
-                        {
-                            material.SetVector(vectorName, vectorValue);
-                        }
+                        ApplyOutlineShaderOnly(material, outlineOverride.Value);
                     }
                 }
 
@@ -296,6 +293,125 @@ namespace Hrpnx.UnityExtensions.BulkMat
             }
 
             return processedCount;
+        }
+
+        // outline: -1（現状維持）のとき floats の _UseOutline を尊重、
+        // outlineOverride が指定されていればそちらを優先する。
+        private static void ApplyOutline(
+            Material material,
+            lilToonPreset preset,
+            bool? outlineOverride
+        )
+        {
+            bool enable;
+            if (outlineOverride.HasValue)
+            {
+                enable = outlineOverride.Value;
+            }
+            else if (preset.outline == -1)
+            {
+                var entry = System.Array.Find(preset.floats, f => f.name == "_UseOutline");
+                if (entry.name != "_UseOutline")
+                    return;
+                enable = entry.value >= 0.5f;
+            }
+            else
+            {
+                // preset.outline が 0/1 で明示されていれば ApplyPreset 側で処理済み
+                return;
+            }
+
+            bool isCurrentlyOutline = lilShaderUtils.IsOutlineShaderName(material.shader.name);
+            if (enable == isCurrentlyOutline)
+                return;
+
+            ApplyOutlineShaderOnly(material, enable);
+        }
+
+        private static void ApplyOutlineShaderOnly(Material material, bool enable)
+        {
+            bool isCurrentlyOutline = lilShaderUtils.IsOutlineShaderName(material.shader.name);
+            if (enable == isCurrentlyOutline)
+                return;
+
+            string shaderName = material.shader.name;
+            string targetName;
+            if (enable)
+            {
+                targetName =
+                    shaderName == "lilToon" ? "Hidden/lilToonOutline" : shaderName + "Outline";
+            }
+            else
+            {
+                targetName =
+                    shaderName == "Hidden/lilToonOutline"
+                        ? "lilToon"
+                        : shaderName.Substring(0, shaderName.Length - "Outline".Length);
+            }
+
+            var targetShader = Shader.Find(targetName);
+            if (targetShader == null)
+            {
+                Debug.LogWarning(
+                    $"[BulkMat] シェーダー '{targetName}' が見つかりません。({material.name})"
+                );
+                return;
+            }
+
+            material.shader = targetShader;
+        }
+
+        private static void ApplyPropertiesManually(
+            Material material,
+            SerializedProperty colorsProperty,
+            SerializedProperty floatsProperty,
+            SerializedProperty vectorsProperty
+        )
+        {
+            if (colorsProperty != null)
+            {
+                for (int i = 0; i < colorsProperty.arraySize; i++)
+                {
+                    var colorElement = colorsProperty.GetArrayElementAtIndex(i);
+                    string colorName = colorElement.FindPropertyRelative("name").stringValue;
+                    Color colorValue = colorElement.FindPropertyRelative("value").colorValue;
+
+                    if (material.HasProperty(colorName))
+                    {
+                        material.SetColor(colorName, colorValue);
+                    }
+                }
+            }
+
+            if (floatsProperty != null)
+            {
+                for (int i = 0; i < floatsProperty.arraySize; i++)
+                {
+                    var floatElement = floatsProperty.GetArrayElementAtIndex(i);
+                    string floatName = floatElement.FindPropertyRelative("name").stringValue;
+                    float floatValue = floatElement.FindPropertyRelative("value").floatValue;
+
+                    if (material.HasProperty(floatName))
+                    {
+                        material.SetFloat(floatName, floatValue);
+                    }
+                }
+            }
+
+            if (vectorsProperty != null)
+            {
+                for (int i = 0; i < vectorsProperty.arraySize; i++)
+                {
+                    var vectorElement = vectorsProperty.GetArrayElementAtIndex(i);
+                    string vectorName = vectorElement.FindPropertyRelative("name").stringValue;
+                    Vector4 vectorValue = vectorElement.FindPropertyRelative("value").vector4Value;
+
+                    if (material.HasProperty(vectorName))
+                    {
+                        material.SetVector(vectorName, vectorValue);
+                    }
+                }
+            }
         }
     }
 }
