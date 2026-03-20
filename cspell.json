@@ -30,7 +30,9 @@
     "toon",
     "unlit",
     "vrchat",
-    "vrcsdk"
+    "vrcsdk",
+    "cheekpuff",
+    "physbone"
   ],
   "ignorePaths": [
     "node_modules",
