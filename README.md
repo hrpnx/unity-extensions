@@ -126,14 +126,14 @@ Some miscellaneous Unity utilities I use.
 | 項目        | 説明                                                             |
 | ----------- | ---------------------------------------------------------------- |
 | Threshold   | リセットを発動する CheekPuff パラメータの閾値 (0–1、デフォルト 0.5) |
-| Cheek Bone L | リセット対象の VRCPhysBone が付いた Transform（左頬）          |
-| Cheek Bone R | リセット対象の VRCPhysBone が付いた Transform（右頬）          |
+| Cheek Bone L | VRCPhysBone がついた GameObject（左頬）                        |
+| Cheek Bone R | VRCPhysBone がついた GameObject（右頬）                        |
 
 **使い方：**
 
 1. アバター配下に空の GameObject を作成
 2. `CheekPuffResetter` コンポーネントを追加
-3. Cheek Bone L / R に対象の PhysBone Transform を設定
+3. Cheek Bone L / R に VRCPhysBone がついた GameObject を設定
 4. (任意) Threshold を調整
 5. アバターをビルドすると FX レイヤーが自動生成されます
 
