@@ -9,7 +9,7 @@ namespace Hrpnx.UnityExtensions.AssetFolderBrowser
 {
     public class AssetFolderBrowserWindow : EditorWindow
     {
-        private static readonly HashSet<string> ExcludedTopLevelFolders = new(
+        private static readonly HashSet<string> _excludedTopLevelFolders = new(
             StringComparer.OrdinalIgnoreCase
         )
         {
@@ -68,8 +68,10 @@ namespace Hrpnx.UnityExtensions.AssetFolderBrowser
                 foreach (string shopDir in Directory.GetDirectories(Application.dataPath))
                 {
                     string shopName = Path.GetFileName(shopDir);
-                    if (ExcludedTopLevelFolders.Contains(shopName))
+                    if (_excludedTopLevelFolders.Contains(shopName))
+                    {
                         continue;
+                    }
 
                     foreach (string assetDir in Directory.GetDirectories(shopDir))
                     {
@@ -110,7 +112,9 @@ namespace Hrpnx.UnityExtensions.AssetFolderBrowser
             if (sceneGuids.Length == 0)
             {
                 foreach (var entry in _allEntries)
+                {
                     entry.HasSceneRef = false;
+                }
                 _sceneRefChecked = true;
                 Repaint();
                 return;
@@ -186,7 +190,9 @@ namespace Hrpnx.UnityExtensions.AssetFolderBrowser
             using (new EditorGUILayout.HorizontalScope(EditorStyles.toolbar))
             {
                 if (GUILayout.Button("再スキャン", EditorStyles.toolbarButton, GUILayout.Width(70)))
+                {
                     Scan();
+                }
 
                 GUILayout.Space(4);
 
@@ -200,7 +206,9 @@ namespace Hrpnx.UnityExtensions.AssetFolderBrowser
                         GUILayout.Width(150)
                     )
                 )
+                {
                     CheckSceneReferences();
+                }
 
                 GUILayout.FlexibleSpace();
 
@@ -228,7 +236,9 @@ namespace Hrpnx.UnityExtensions.AssetFolderBrowser
                 if (newAllSelected != allSelected)
                 {
                     foreach (var entry in _filteredEntries)
+                    {
                         entry.IsSelected = newAllSelected;
+                    }
                 }
 
                 DrawSortColumnHeader(
@@ -301,7 +311,9 @@ namespace Hrpnx.UnityExtensions.AssetFolderBrowser
                             entry.AssetPath
                         );
                         if (asset != null)
+                        {
                             EditorGUIUtility.PingObject(asset);
+                        }
                     }
                 }
             }
@@ -333,7 +345,10 @@ namespace Hrpnx.UnityExtensions.AssetFolderBrowser
                         GUILayout.Width(210)
                     )
                 )
+                {
                     DeleteSelected(selected);
+                }
+
                 GUI.backgroundColor = prevBg;
                 GUI.enabled = true;
             }
@@ -352,15 +367,21 @@ namespace Hrpnx.UnityExtensions.AssetFolderBrowser
             );
 
             if (!confirmed)
+            {
                 return;
+            }
 
             int deleted = 0;
             foreach (var entry in selected)
             {
                 if (AssetDatabase.DeleteAsset(entry.AssetPath))
+                {
                     deleted++;
+                }
                 else
+                {
                     Debug.LogWarning($"[AssetFolderBrowser] 削除失敗: {entry.AssetPath}");
+                }
             }
 
             Debug.Log($"[AssetFolderBrowser] {deleted}/{selected.Count} フォルダを削除しました");

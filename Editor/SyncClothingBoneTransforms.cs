@@ -34,11 +34,19 @@ namespace Hrpnx.UnityExtensions
             foreach (var t in avatarRoot.GetComponentsInChildren<Transform>(true))
             {
                 if (t == avatarRoot.transform)
+                {
                     continue;
+                }
+
                 if (clothingTransforms.Contains(t))
+                {
                     continue;
+                }
+
                 if (!avatarBones.ContainsKey(t.name))
+                {
                     avatarBones[t.name] = t;
+                }
             }
 
             int syncedCount = 0;
@@ -48,9 +56,14 @@ namespace Hrpnx.UnityExtensions
             foreach (var t in clothing.GetComponentsInChildren<Transform>(true))
             {
                 if (t == clothing.transform)
+                {
                     continue;
+                }
+
                 if (!avatarBones.TryGetValue(t.name, out var avatarBone))
+                {
                     continue;
+                }
 
                 Undo.RecordObject(t, "Sync Clothing Bone Transforms");
                 t.localPosition = avatarBone.localPosition;
@@ -61,11 +74,15 @@ namespace Hrpnx.UnityExtensions
                 {
                     var destScaleAdjuster = t.GetComponent<ModularAvatarScaleAdjuster>();
                     if (destScaleAdjuster == null)
+                    {
                         destScaleAdjuster = Undo.AddComponent<ModularAvatarScaleAdjuster>(
                             t.gameObject
                         );
+                    }
                     else
+                    {
                         Undo.RecordObject(destScaleAdjuster, "Sync Clothing Bone Transforms");
+                    }
 
                     destScaleAdjuster.Scale = sourceScaleAdjuster.Scale;
                 }
@@ -85,11 +102,15 @@ namespace Hrpnx.UnityExtensions
         {
             var selected = Selection.activeGameObject;
             if (selected == null)
+            {
                 return false;
+            }
 
             var descriptor = selected.GetComponentInParent<VRCAvatarDescriptor>();
             if (descriptor == null)
+            {
                 return false;
+            }
 
             // 選択オブジェクト自体がアバタールートでないことを確認
             return descriptor.gameObject != selected;

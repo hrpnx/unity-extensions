@@ -312,7 +312,10 @@ namespace Hrpnx.UnityExtensions.BulkMat
             {
                 var entry = System.Array.Find(preset.floats, f => f.name == "_UseOutline");
                 if (entry.name != "_UseOutline")
+                {
                     return;
+                }
+
                 enable = entry.value >= 0.5f;
             }
             else
@@ -323,7 +326,9 @@ namespace Hrpnx.UnityExtensions.BulkMat
 
             bool isCurrentlyOutline = lilShaderUtils.IsOutlineShaderName(material.shader.name);
             if (enable == isCurrentlyOutline)
+            {
                 return;
+            }
 
             ApplyOutlineShaderOnly(material, enable);
         }
@@ -332,7 +337,9 @@ namespace Hrpnx.UnityExtensions.BulkMat
         {
             bool isCurrentlyOutline = lilShaderUtils.IsOutlineShaderName(material.shader.name);
             if (enable == isCurrentlyOutline)
+            {
                 return;
+            }
 
             string shaderName = material.shader.name;
             string targetName;
