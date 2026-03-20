@@ -137,12 +137,6 @@ Some miscellaneous Unity utilities I use.
 4. (任意) Threshold を調整
 5. アバターをビルドすると FX レイヤーが自動生成されます
 
-**要件：**
-
-- VRChat SDK3 Avatars（VRCPhysBone）
-- Modular Avatar
-- フェイシャルトラッカー（OSC 経由で `CheekPuffLeft` / `CheekPuffRight` を送信）
-
 ### 🦴 Sync Clothing Bone Transforms
 
 衣装オブジェクトのボーンにアバター本体のトランスフォームを同期するコンテキストメニューコマンドです。
