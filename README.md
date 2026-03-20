@@ -141,7 +141,7 @@ Some miscellaneous Unity utilities I use.
 
 - VRChat SDK3 Avatars（VRCPhysBone）
 - Modular Avatar
-- フェイストラッキング対応クライアント（OSC 経由で `CheekPuffLeft` / `CheekPuffRight` を送信）
+- フェイシャルトラッカー（OSC 経由で `CheekPuffLeft` / `CheekPuffRight` を送信）
 
 ### 🦴 Sync Clothing Bone Transforms
 
