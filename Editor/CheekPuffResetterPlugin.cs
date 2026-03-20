@@ -9,9 +9,7 @@ using UnityEngine;
 using VRC.Dynamics;
 using VRC.SDK3.Avatars.Components;
 
-[assembly: ExportsPlugin(
-    typeof(Hrpnx.UnityExtensions.CheekPuffResetter.CheekPuffResetterPlugin)
-)]
+[assembly: ExportsPlugin(typeof(Hrpnx.UnityExtensions.CheekPuffResetter.CheekPuffResetterPlugin))]
 
 namespace Hrpnx.UnityExtensions.CheekPuffResetter
 {
@@ -45,10 +43,7 @@ namespace Hrpnx.UnityExtensions.CheekPuffResetter
                     }
                 );
 
-        private static void InstallResetter(
-            GameObject avatarRoot,
-            CheekPuffResetter resetter
-        )
+        private static void InstallResetter(GameObject avatarRoot, CheekPuffResetter resetter)
         {
             if (resetter.CheekBoneL == null || resetter.CheekBoneR == null)
             {
