@@ -8,9 +8,9 @@ namespace Hrpnx.UnityExtensions.CheekPuffResetter
     /// </summary>
     public enum MonitorMode
     {
-        [InspectorName("頬を膨らませる")]
+        [InspectorName("頬を膨らませてリセット")]
         PuffOnly,
-        [InspectorName("頬をへこませる")]
+        [InspectorName("頬をへこませてリセット")]
         SuckOnly,
     }
 
