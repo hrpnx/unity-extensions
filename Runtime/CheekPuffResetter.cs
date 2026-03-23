@@ -10,6 +10,7 @@ namespace Hrpnx.UnityExtensions.CheekPuffResetter
     {
         [InspectorName("頬を膨らませてリセット")]
         Puff,
+
         [InspectorName("頬をへこませてリセット")]
         Suck,
     }

@@ -192,8 +192,20 @@ namespace Hrpnx.UnityExtensions.CheekPuffResetter
             layers[1].defaultWeight = 1f;
             controller.layers = layers;
 
-            SetupResetLayer(layers[0].stateMachine, paramLeft, threshold, enableClipL, disableClipL);
-            SetupResetLayer(layers[1].stateMachine, paramRight, threshold, enableClipR, disableClipR);
+            SetupResetLayer(
+                layers[0].stateMachine,
+                paramLeft,
+                threshold,
+                enableClipL,
+                disableClipL
+            );
+            SetupResetLayer(
+                layers[1].stateMachine,
+                paramRight,
+                threshold,
+                enableClipR,
+                disableClipR
+            );
 
             return controller;
         }
