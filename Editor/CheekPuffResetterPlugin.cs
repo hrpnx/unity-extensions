@@ -165,45 +165,39 @@ namespace Hrpnx.UnityExtensions.CheekPuffResetter
         {
             var controller = new AnimatorController();
 
-            if (mode == MonitorMode.PuffOnly || mode == MonitorMode.Both)
+            string paramLeft;
+            string paramRight;
+            float threshold;
+
+            if (mode == MonitorMode.PuffOnly)
             {
-                controller.AddParameter(
-                    new AnimatorControllerParameter
-                    {
-                        name = ParamPuffLeft,
-                        type = AnimatorControllerParameterType.Float,
-                        defaultFloat = 0f,
-                    }
-                );
-                controller.AddParameter(
-                    new AnimatorControllerParameter
-                    {
-                        name = ParamPuffRight,
-                        type = AnimatorControllerParameterType.Float,
-                        defaultFloat = 0f,
-                    }
-                );
+                paramLeft = ParamPuffLeft;
+                paramRight = ParamPuffRight;
+                threshold = puffThreshold;
+            }
+            else
+            {
+                paramLeft = ParamSuckLeft;
+                paramRight = ParamSuckRight;
+                threshold = suckThreshold;
             }
 
-            if (mode == MonitorMode.SuckOnly || mode == MonitorMode.Both)
-            {
-                controller.AddParameter(
-                    new AnimatorControllerParameter
-                    {
-                        name = ParamSuckLeft,
-                        type = AnimatorControllerParameterType.Float,
-                        defaultFloat = 0f,
-                    }
-                );
-                controller.AddParameter(
-                    new AnimatorControllerParameter
-                    {
-                        name = ParamSuckRight,
-                        type = AnimatorControllerParameterType.Float,
-                        defaultFloat = 0f,
-                    }
-                );
-            }
+            controller.AddParameter(
+                new AnimatorControllerParameter
+                {
+                    name = paramLeft,
+                    type = AnimatorControllerParameterType.Float,
+                    defaultFloat = 0f,
+                }
+            );
+            controller.AddParameter(
+                new AnimatorControllerParameter
+                {
+                    name = paramRight,
+                    type = AnimatorControllerParameterType.Float,
+                    defaultFloat = 0f,
+                }
+            );
 
             controller.AddLayer("CheekReset_L");
             controller.AddLayer("CheekReset_R");
@@ -214,29 +208,8 @@ namespace Hrpnx.UnityExtensions.CheekPuffResetter
             layers[1].defaultWeight = 1f;
             controller.layers = layers;
 
-            string puffParamL = (mode == MonitorMode.PuffOnly || mode == MonitorMode.Both) ? ParamPuffLeft : null;
-            string puffParamR = (mode == MonitorMode.PuffOnly || mode == MonitorMode.Both) ? ParamPuffRight : null;
-            string suckParamL = (mode == MonitorMode.SuckOnly || mode == MonitorMode.Both) ? ParamSuckLeft : null;
-            string suckParamR = (mode == MonitorMode.SuckOnly || mode == MonitorMode.Both) ? ParamSuckRight : null;
-
-            SetupResetLayer(
-                layers[0].stateMachine,
-                puffParamL,
-                puffThreshold,
-                suckParamL,
-                suckThreshold,
-                enableClipL,
-                disableClipL
-            );
-            SetupResetLayer(
-                layers[1].stateMachine,
-                puffParamR,
-                puffThreshold,
-                suckParamR,
-                suckThreshold,
-                enableClipR,
-                disableClipR
-            );
+            SetupResetLayer(layers[0].stateMachine, paramLeft, threshold, enableClipL, disableClipL);
+            SetupResetLayer(layers[1].stateMachine, paramRight, threshold, enableClipR, disableClipR);
 
             return controller;
         }
@@ -244,17 +217,12 @@ namespace Hrpnx.UnityExtensions.CheekPuffResetter
         /// <summary>
         /// 1 レイヤー分のステートマシンを構築する。
         ///
-        /// Idle (有効) → Resetting (無効化、クリップ再生完了まで待機) → WaitRelease (再有効化) → Idle (全パラメータが閾値未満)
-        ///
-        /// Both モード時、Idle → Resetting はいずれかのパラメータが閾値超過で遷移する（OR 条件）。
-        /// WaitRelease → Idle は全パラメータが閾値未満に戻った場合に遷移する（AND 条件）。
+        /// Idle (有効) → Resetting (無効化、クリップ再生完了まで待機) → WaitRelease (再有効化) → Idle (パラメータが閾値未満)
         /// </summary>
         private static void SetupResetLayer(
             AnimatorStateMachine stateMachine,
-            string puffParamName,
-            float puffThreshold,
-            string suckParamName,
-            float suckThreshold,
+            string paramName,
+            float threshold,
             AnimationClip enableClip,
             AnimationClip disableClip
         )
@@ -277,23 +245,11 @@ namespace Hrpnx.UnityExtensions.CheekPuffResetter
 
             stateMachine.defaultState = idle;
 
-            // Idle → Resetting: Puff が閾値超過（OR 条件の 1 つ目）
-            if (puffParamName != null)
-            {
-                var t = idle.AddTransition(resetting);
-                t.AddCondition(AnimatorConditionMode.Greater, puffThreshold, puffParamName);
-                t.hasExitTime = false;
-                t.duration = 0f;
-            }
-
-            // Idle → Resetting: Suck が閾値超過（OR 条件の 2 つ目）
-            if (suckParamName != null)
-            {
-                var t = idle.AddTransition(resetting);
-                t.AddCondition(AnimatorConditionMode.Greater, suckThreshold, suckParamName);
-                t.hasExitTime = false;
-                t.duration = 0f;
-            }
+            // Idle → Resetting: パラメータが閾値を超えたらリセット開始
+            var toResetting = idle.AddTransition(resetting);
+            toResetting.AddCondition(AnimatorConditionMode.Greater, threshold, paramName);
+            toResetting.hasExitTime = false;
+            toResetting.duration = 0f;
 
             // Resetting → WaitRelease: disable クリップを 1 回再生し終えたら遷移 (PhysBone が確実に無効化される)
             var toWaitRelease = resetting.AddTransition(waitRelease);
@@ -301,16 +257,9 @@ namespace Hrpnx.UnityExtensions.CheekPuffResetter
             toWaitRelease.exitTime = 1.0f;
             toWaitRelease.duration = 0f;
 
-            // WaitRelease → Idle: 全パラメータが閾値未満に戻ったら待機解除（AND 条件）
+            // WaitRelease → Idle: パラメータが閾値未満に戻ったら待機解除
             var toIdle = waitRelease.AddTransition(idle);
-            if (puffParamName != null)
-            {
-                toIdle.AddCondition(AnimatorConditionMode.Less, puffThreshold, puffParamName);
-            }
-            if (suckParamName != null)
-            {
-                toIdle.AddCondition(AnimatorConditionMode.Less, suckThreshold, suckParamName);
-            }
+            toIdle.AddCondition(AnimatorConditionMode.Less, threshold, paramName);
             toIdle.hasExitTime = false;
             toIdle.duration = 0f;
         }
@@ -324,49 +273,27 @@ namespace Hrpnx.UnityExtensions.CheekPuffResetter
 
             var parameters = gameObject.AddComponent<ModularAvatarParameters>();
 
-            if (resetter.Mode == MonitorMode.PuffOnly || resetter.Mode == MonitorMode.Both)
-            {
-                parameters.parameters.Add(
-                    new ParameterConfig
-                    {
-                        nameOrPrefix = ParamPuffLeft,
-                        defaultValue = 0f,
-                        saved = false,
-                        syncType = ParameterSyncType.Float,
-                    }
-                );
-                parameters.parameters.Add(
-                    new ParameterConfig
-                    {
-                        nameOrPrefix = ParamPuffRight,
-                        defaultValue = 0f,
-                        saved = false,
-                        syncType = ParameterSyncType.Float,
-                    }
-                );
-            }
+            string paramLeft = resetter.Mode == MonitorMode.PuffOnly ? ParamPuffLeft : ParamSuckLeft;
+            string paramRight = resetter.Mode == MonitorMode.PuffOnly ? ParamPuffRight : ParamSuckRight;
 
-            if (resetter.Mode == MonitorMode.SuckOnly || resetter.Mode == MonitorMode.Both)
-            {
-                parameters.parameters.Add(
-                    new ParameterConfig
-                    {
-                        nameOrPrefix = ParamSuckLeft,
-                        defaultValue = 0f,
-                        saved = false,
-                        syncType = ParameterSyncType.Float,
-                    }
-                );
-                parameters.parameters.Add(
-                    new ParameterConfig
-                    {
-                        nameOrPrefix = ParamSuckRight,
-                        defaultValue = 0f,
-                        saved = false,
-                        syncType = ParameterSyncType.Float,
-                    }
-                );
-            }
+            parameters.parameters.Add(
+                new ParameterConfig
+                {
+                    nameOrPrefix = paramLeft,
+                    defaultValue = 0f,
+                    saved = false,
+                    syncType = ParameterSyncType.Float,
+                }
+            );
+            parameters.parameters.Add(
+                new ParameterConfig
+                {
+                    nameOrPrefix = paramRight,
+                    defaultValue = 0f,
+                    saved = false,
+                    syncType = ParameterSyncType.Float,
+                }
+            );
 
             var mergeAnimator = gameObject.AddComponent<ModularAvatarMergeAnimator>();
             mergeAnimator.animator = controller;
