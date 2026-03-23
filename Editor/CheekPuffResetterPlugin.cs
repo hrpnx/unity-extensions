@@ -163,8 +163,8 @@ namespace Hrpnx.UnityExtensions.CheekPuffResetter
         {
             var controller = new AnimatorController();
 
-            string paramLeft = mode == MonitorMode.PuffOnly ? ParamPuffLeft : ParamSuckLeft;
-            string paramRight = mode == MonitorMode.PuffOnly ? ParamPuffRight : ParamSuckRight;
+            string paramLeft = mode == MonitorMode.Puff ? ParamPuffLeft : ParamSuckLeft;
+            string paramRight = mode == MonitorMode.Puff ? ParamPuffRight : ParamSuckRight;
 
             controller.AddParameter(
                 new AnimatorControllerParameter
@@ -257,8 +257,8 @@ namespace Hrpnx.UnityExtensions.CheekPuffResetter
 
             var parameters = gameObject.AddComponent<ModularAvatarParameters>();
 
-            string paramLeft = resetter.Mode == MonitorMode.PuffOnly ? ParamPuffLeft : ParamSuckLeft;
-            string paramRight = resetter.Mode == MonitorMode.PuffOnly ? ParamPuffRight : ParamSuckRight;
+            string paramLeft = resetter.Mode == MonitorMode.Puff ? ParamPuffLeft : ParamSuckLeft;
+            string paramRight = resetter.Mode == MonitorMode.Puff ? ParamPuffRight : ParamSuckRight;
 
             parameters.parameters.Add(
                 new ParameterConfig

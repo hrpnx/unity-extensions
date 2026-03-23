@@ -9,9 +9,9 @@ namespace Hrpnx.UnityExtensions.CheekPuffResetter
     public enum MonitorMode
     {
         [InspectorName("頬を膨らませてリセット")]
-        PuffOnly,
+        Puff,
         [InspectorName("頬をへこませてリセット")]
-        SuckOnly,
+        Suck,
     }
 
     /// <summary>
@@ -20,7 +20,7 @@ namespace Hrpnx.UnityExtensions.CheekPuffResetter
     public class CheekPuffResetter : MonoBehaviour, IEditorOnly
     {
         [Tooltip("監視するパラメータの種類")]
-        public MonitorMode Mode = MonitorMode.PuffOnly;
+        public MonitorMode Mode = MonitorMode.Puff;
 
         [Tooltip("閾値 (0-1、0.5 = 50%)")]
         [Range(0f, 1f)]
