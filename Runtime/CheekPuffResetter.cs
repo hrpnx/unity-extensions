@@ -10,7 +10,7 @@ namespace Hrpnx.UnityExtensions.CheekPuffResetter
     {
         [InspectorName("頬を膨らませる")]
         PuffOnly,
-        [InspectorName("頬をへこます")]
+        [InspectorName("頬をへこませる")]
         SuckOnly,
     }
 
@@ -26,7 +26,7 @@ namespace Hrpnx.UnityExtensions.CheekPuffResetter
         [Range(0f, 1f)]
         public float Threshold = 0.5f;
 
-        [Tooltip("CheekSuckLeft/Right（頬をへこます）の閾値 (0-1、0.5 = 50%)")]
+        [Tooltip("CheekSuckLeft/Right（頬をへこませる）の閾値 (0-1、0.5 = 50%)")]
         [Range(0f, 1f)]
         public float SuckThreshold = 0.5f;
 
