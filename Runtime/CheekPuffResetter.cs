@@ -22,13 +22,9 @@ namespace Hrpnx.UnityExtensions.CheekPuffResetter
         [Tooltip("監視するパラメータの種類")]
         public MonitorMode Mode = MonitorMode.PuffOnly;
 
-        [Tooltip("CheekPuffLeft/Right（頬を膨らませる）の閾値 (0-1、0.5 = 50%)")]
+        [Tooltip("閾値 (0-1、0.5 = 50%)")]
         [Range(0f, 1f)]
         public float Threshold = 0.5f;
-
-        [Tooltip("CheekSuckLeft/Right（頬をへこませる）の閾値 (0-1、0.5 = 50%)")]
-        [Range(0f, 1f)]
-        public float SuckThreshold = 0.5f;
 
         [Tooltip("リセット対象の PhysBone が付いた Transform (Cheek1_L)")]
         public Transform CheekBoneL;

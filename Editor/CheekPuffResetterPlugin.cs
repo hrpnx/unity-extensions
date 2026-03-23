@@ -106,7 +106,6 @@ namespace Hrpnx.UnityExtensions.CheekPuffResetter
             var controller = CreateAnimatorController(
                 resetter.Mode,
                 resetter.Threshold,
-                resetter.SuckThreshold,
                 enableClipL,
                 disableClipL,
                 enableClipR,
@@ -155,8 +154,7 @@ namespace Hrpnx.UnityExtensions.CheekPuffResetter
 
         private static AnimatorController CreateAnimatorController(
             MonitorMode mode,
-            float puffThreshold,
-            float suckThreshold,
+            float threshold,
             AnimationClip enableClipL,
             AnimationClip disableClipL,
             AnimationClip enableClipR,
@@ -165,22 +163,8 @@ namespace Hrpnx.UnityExtensions.CheekPuffResetter
         {
             var controller = new AnimatorController();
 
-            string paramLeft;
-            string paramRight;
-            float threshold;
-
-            if (mode == MonitorMode.PuffOnly)
-            {
-                paramLeft = ParamPuffLeft;
-                paramRight = ParamPuffRight;
-                threshold = puffThreshold;
-            }
-            else
-            {
-                paramLeft = ParamSuckLeft;
-                paramRight = ParamSuckRight;
-                threshold = suckThreshold;
-            }
+            string paramLeft = mode == MonitorMode.PuffOnly ? ParamPuffLeft : ParamSuckLeft;
+            string paramRight = mode == MonitorMode.PuffOnly ? ParamPuffRight : ParamSuckRight;
 
             controller.AddParameter(
                 new AnimatorControllerParameter
