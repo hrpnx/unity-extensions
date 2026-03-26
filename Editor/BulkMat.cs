@@ -20,7 +20,7 @@ namespace Hrpnx.UnityExtensions.BulkMat
         private bool _overrideOutline = false;
         private bool _useOutline = true;
 
-        [MenuItem("Tools/BulkMat")]
+        [MenuItem(MenuPaths.Root + "BulkMat")]
         public static void ShowWindow()
         {
             var window = GetWindow<BulkMat>("BulkMat");
