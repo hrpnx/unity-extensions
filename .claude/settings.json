@@ -6,7 +6,7 @@
                 "hooks": [
                     {
                         "type": "command",
-                        "command": "node -e \"let d=''; process.stdin.on('data',c=>d+=c); process.stdin.on('end',()=>{ const o=JSON.parse(d); const cmd=(o.tool_input&&o.tool_input.command)||''; if(/git push/.test(cmd)&&/(^| )main( |$)/.test(cmd)){ process.stdout.write(JSON.stringify({hookSpecificOutput:{hookEventName:'PreToolUse',permissionDecision:'deny',permissionDecisionReason:'main への直接 push は禁止です。feature ブランチを作成して PR 経由でマージしてください。'}})); } });\"",
+                        "command": "cmd=$(jq -r '.tool_input.command // \"\"'); if echo \"$cmd\" | grep -qE 'git push' && echo \"$cmd\" | grep -qE '(^| )main( |$)'; then printf '{\"hookSpecificOutput\":{\"hookEventName\":\"PreToolUse\",\"permissionDecision\":\"deny\",\"permissionDecisionReason\":\"main への直接 push は禁止です。feature ブランチを作成して PR 経由でマージしてください。\"}}'; fi",
                         "statusMessage": "main push チェック中..."
                     }
                 ]
