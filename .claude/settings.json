@@ -1,0 +1,16 @@
+{
+    "hooks": {
+        "PreToolUse": [
+            {
+                "matcher": "Bash",
+                "hooks": [
+                    {
+                        "type": "command",
+                        "command": "cmd=$(jq -r '.tool_input.command // \"\"'); if echo \"$cmd\" | grep -qE 'git push' && echo \"$cmd\" | grep -qE '(^| )main( |$)'; then printf '{\"hookSpecificOutput\":{\"hookEventName\":\"PreToolUse\",\"permissionDecision\":\"deny\",\"permissionDecisionReason\":\"main への直接 push は禁止です。feature ブランチを作成して PR 経由でマージしてください。\"}}'; fi",
+                        "statusMessage": "main push チェック中..."
+                    }
+                ]
+            }
+        ]
+    }
+}
