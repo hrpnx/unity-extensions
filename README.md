@@ -113,31 +113,29 @@ Some miscellaneous Unity utilities I use.
 
 ### 💨 CheekPuff Resetter
 
-フェイシャルトラッキングで頬を膨らませる／へこませる動作をトリガーとして、引っ張られて固定された頬の PhysBone をリセットするコンポーネントです。
+フェイシャルトラッキングで頬を膨らませる動作をトリガーとして、引っ張られて固定された頬の PhysBone をリセットするコンポーネントです。
 
 **主な機能：**
 
-- 頬を膨らませる (`CheekPuffLeft` / `CheekPuffRight`) または頬をへこませる (`CheekSuckLeft` / `CheekSuckRight`) OSC パラメータが閾値を超えた瞬間に対象 PhysBone をリセット
+- `CheekPuffLeft` / `CheekPuffRight` OSC パラメータが閾値を超えた瞬間に対象 PhysBone をリセット
 - Modular Avatar 経由で FX レイヤーを自動生成・マージ
 - 左右独立した FX レイヤー構成
 
 **設定項目：**
 
-| 項目         | 説明                                                        |
-| ------------ | ----------------------------------------------------------- |
-| Mode         | 頬を膨らませてリセット / 頬をへこませてリセット             |
-| Threshold    | リセットを発動するパラメータの閾値 (0–1、デフォルト 0.5)    |
-| Cheek Bone L | VRCPhysBone がついた GameObject（左頬）                     |
-| Cheek Bone R | VRCPhysBone がついた GameObject（右頬）                     |
+| 項目         | 説明                                                     |
+| ------------ | -------------------------------------------------------- |
+| Threshold    | リセットを発動するパラメータの閾値 (0–1、デフォルト 0.5) |
+| Cheek Bone L | VRCPhysBone がついた GameObject（左頬）                  |
+| Cheek Bone R | VRCPhysBone がついた GameObject（右頬）                  |
 
 **使い方：**
 
 1. アバター配下に空の GameObject を作成
 2. `CheekPuffResetter` コンポーネントを追加
-3. Mode でリセットのトリガーとなる動作を選択
-4. Cheek Bone L / R に VRCPhysBone がついた GameObject を設定
-5. (任意) Threshold を調整
-6. アバターをビルドすると FX レイヤーが自動生成されます
+3. Cheek Bone L / R に VRCPhysBone がついた GameObject を設定
+4. (任意) Threshold を調整
+5. アバターをビルドすると FX レイヤーが自動生成されます
 
 ### 🦴 Sync Clothing Bone Transforms
 
