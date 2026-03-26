@@ -88,28 +88,11 @@ Some miscellaneous Unity utilities I use.
 
 **使い方：**
 
-1. メニューから `Tools > BulkMat` を選択
+1. メニューから `Tools > hrpnx > BulkMat` を選択
 2. 対象フォルダにマテリアルが含まれるフォルダを設定
 3. 適用設定に lilToon プリセットを設定
 4. (任意) 「輪郭線を上書き」を有効にして輪郭線の ON/OFF を指定
 5. 「マテリアルに一括適用」ボタンをクリック
-
-### 🗂️ Asset Folder Browser
-
-`Assets/` 直下のショップ/アセットフォルダをサイズ・名前でソート・フィルタ表示するエディターウィンドウです。
-
-**主な機能：**
-
-- フォルダ一覧をサイズ・ショップ名・アセット名でソート
-- キーワードフィルタ
-- シーン参照チェック（未参照フォルダを一目で確認）
-- 選択したフォルダの一括削除
-
-**使い方：**
-
-1. メニューから `Tools > Asset Folder Browser` を選択
-2. 「シーン参照を確認」ボタンでシーンからの参照状況を取得
-3. 不要なフォルダを選択して「選択した N フォルダを削除」をクリック
 
 ### 💨 CheekPuff Resetter
 
@@ -136,21 +119,6 @@ Some miscellaneous Unity utilities I use.
 3. Cheek Bone L / R に VRCPhysBone がついた GameObject を設定
 4. (任意) Threshold を調整
 5. アバターをビルドすると FX レイヤーが自動生成されます
-
-### 🦴 Sync Clothing Bone Transforms
-
-衣装オブジェクトのボーンにアバター本体のトランスフォームを同期するコンテキストメニューコマンドです。
-
-**主な機能：**
-
-- 衣装ボーンの `localPosition` / `localScale` をアバターの同名ボーンから同期
-- `ModularAvatarScaleAdjuster` が付いているボーンはコンポーネントごとコピー
-- Undo 対応
-
-**使い方：**
-
-1. アバター配下の衣装オブジェクトを選択
-2. 右クリックメニューから `Sync Clothing Bone Transforms from Avatar` を選択
 
 ## 📋 Requirements
 
