@@ -14,15 +14,13 @@ using VRC.SDK3.Avatars.Components;
 namespace Hrpnx.UnityExtensions.CheekPuffResetter
 {
     /// <summary>
-    /// CheekPuff / CheekSuck PhysBone リセットギミックを FX レイヤーに組み込む NDMF プラグイン
+    /// CheekPuffLeft/Right PhysBone リセットギミックを FX レイヤーに組み込む NDMF プラグイン
     /// </summary>
     public class CheekPuffResetterPlugin : Plugin<CheekPuffResetterPlugin>
     {
         private const string PluginName = "CheekPuffResetter";
-        private const string ParamPuffLeft = "CheekPuffLeft";
-        private const string ParamPuffRight = "CheekPuffRight";
-        private const string ParamSuckLeft = "CheekSuckLeft";
-        private const string ParamSuckRight = "CheekSuckRight";
+        private const string ParamLeft = "CheekPuffLeft";
+        private const string ParamRight = "CheekPuffRight";
 
         public override string QualifiedName => "dev.hrpnx.cheekpuff-resetter";
         public override string DisplayName => "CheekPuff Resetter";
@@ -104,7 +102,6 @@ namespace Hrpnx.UnityExtensions.CheekPuffResetter
             CreateAsset(disableClipR, $"{assetDir}/Disable_R.anim");
 
             var controller = CreateAnimatorController(
-                resetter.Mode,
                 resetter.Threshold,
                 enableClipL,
                 disableClipL,
@@ -153,7 +150,6 @@ namespace Hrpnx.UnityExtensions.CheekPuffResetter
         }
 
         private static AnimatorController CreateAnimatorController(
-            MonitorMode mode,
             float threshold,
             AnimationClip enableClipL,
             AnimationClip disableClipL,
@@ -163,13 +159,10 @@ namespace Hrpnx.UnityExtensions.CheekPuffResetter
         {
             var controller = new AnimatorController();
 
-            string paramLeft = mode == MonitorMode.Puff ? ParamPuffLeft : ParamSuckLeft;
-            string paramRight = mode == MonitorMode.Puff ? ParamPuffRight : ParamSuckRight;
-
             controller.AddParameter(
                 new AnimatorControllerParameter
                 {
-                    name = paramLeft,
+                    name = ParamLeft,
                     type = AnimatorControllerParameterType.Float,
                     defaultFloat = 0f,
                 }
@@ -177,7 +170,7 @@ namespace Hrpnx.UnityExtensions.CheekPuffResetter
             controller.AddParameter(
                 new AnimatorControllerParameter
                 {
-                    name = paramRight,
+                    name = ParamRight,
                     type = AnimatorControllerParameterType.Float,
                     defaultFloat = 0f,
                 }
@@ -194,14 +187,14 @@ namespace Hrpnx.UnityExtensions.CheekPuffResetter
 
             SetupResetLayer(
                 layers[0].stateMachine,
-                paramLeft,
+                ParamLeft,
                 threshold,
                 enableClipL,
                 disableClipL
             );
             SetupResetLayer(
                 layers[1].stateMachine,
-                paramRight,
+                ParamRight,
                 threshold,
                 enableClipR,
                 disableClipR
@@ -241,7 +234,7 @@ namespace Hrpnx.UnityExtensions.CheekPuffResetter
 
             stateMachine.defaultState = idle;
 
-            // Idle → Resetting: パラメータが閾値を超えたらリセット開始
+            // Idle → Resetting: CheekPuffLeft/Right が閾値を超えたらリセット開始
             var toResetting = idle.AddTransition(resetting);
             toResetting.AddCondition(AnimatorConditionMode.Greater, threshold, paramName);
             toResetting.hasExitTime = false;
@@ -269,13 +262,10 @@ namespace Hrpnx.UnityExtensions.CheekPuffResetter
 
             var parameters = gameObject.AddComponent<ModularAvatarParameters>();
 
-            string paramLeft = resetter.Mode == MonitorMode.Puff ? ParamPuffLeft : ParamSuckLeft;
-            string paramRight = resetter.Mode == MonitorMode.Puff ? ParamPuffRight : ParamSuckRight;
-
             parameters.parameters.Add(
                 new ParameterConfig
                 {
-                    nameOrPrefix = paramLeft,
+                    nameOrPrefix = ParamLeft,
                     defaultValue = 0f,
                     saved = false,
                     syncType = ParameterSyncType.Float,
@@ -284,7 +274,7 @@ namespace Hrpnx.UnityExtensions.CheekPuffResetter
             parameters.parameters.Add(
                 new ParameterConfig
                 {
-                    nameOrPrefix = paramRight,
+                    nameOrPrefix = ParamRight,
                     defaultValue = 0f,
                     saved = false,
                     syncType = ParameterSyncType.Float,
