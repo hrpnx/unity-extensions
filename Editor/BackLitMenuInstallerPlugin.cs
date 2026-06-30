@@ -349,9 +349,14 @@ namespace Hrpnx.UnityExtensions.BackLitMenuInstaller
 
             foreach (var material in renderer.sharedMaterials)
             {
+                if (material == null || material.shader == null)
+                {
+                    continue;
+                }
+
+                string shaderName = material.shader.name;
                 if (
-                    material == null
-                    || !material.shader.name.Contains("lilToon")
+                    (!shaderName.Contains("lilToon") && !shaderName.Contains("lilSSRT"))
                     || (exclusions != null && exclusions.Contains(material))
                 )
                 {

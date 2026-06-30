@@ -8,14 +8,17 @@ namespace Hrpnx.UnityExtensions.BulkMat
     public class BulkMat : EditorWindow
     {
         private const string LILTOON_SHADER_NAME = "lilToon";
+        private const string LILSSRT_SHADER_NAME = "lilSSRT";
         private const string PREF_TARGET_DIRECTORY = "BulkMat_TargetDirectory";
         private const string PREF_PRESET = "BulkMat_Preset";
+        private const string PREF_SSRTREF = "BulkMat_SSRTRef";
         private const string PREF_INCLUDE_SUBFOLDERS = "BulkMat_IncludeSubFolders";
         private const string PREF_OVERRIDE_OUTLINE = "BulkMat_OverrideOutline";
         private const string PREF_USE_OUTLINE = "BulkMat_UseOutline";
 
         private DefaultAsset _targetDirectory;
         private ScriptableObject _preset;
+        private Material _ssrtRef;
         private bool _includeSubFolders = true;
         private bool _overrideOutline = false;
         private bool _useOutline = true;
@@ -51,6 +54,12 @@ namespace Hrpnx.UnityExtensions.BulkMat
                 _preset = AssetDatabase.LoadAssetAtPath<ScriptableObject>(presetPath);
             }
 
+            string ssrtRefPath = EditorPrefs.GetString(PREF_SSRTREF, "");
+            if (!string.IsNullOrEmpty(ssrtRefPath))
+            {
+                _ssrtRef = AssetDatabase.LoadAssetAtPath<Material>(ssrtRefPath);
+            }
+
             _includeSubFolders = EditorPrefs.GetBool(PREF_INCLUDE_SUBFOLDERS, true);
             _overrideOutline = EditorPrefs.GetBool(PREF_OVERRIDE_OUTLINE, false);
             _useOutline = EditorPrefs.GetBool(PREF_USE_OUTLINE, true);
@@ -65,6 +74,9 @@ namespace Hrpnx.UnityExtensions.BulkMat
             string presetPath = _preset != null ? AssetDatabase.GetAssetPath(_preset) : "";
             EditorPrefs.SetString(PREF_PRESET, presetPath);
 
+            string ssrtRefPath = _ssrtRef != null ? AssetDatabase.GetAssetPath(_ssrtRef) : "";
+            EditorPrefs.SetString(PREF_SSRTREF, ssrtRefPath);
+
             EditorPrefs.SetBool(PREF_INCLUDE_SUBFOLDERS, _includeSubFolders);
             EditorPrefs.SetBool(PREF_OVERRIDE_OUTLINE, _overrideOutline);
             EditorPrefs.SetBool(PREF_USE_OUTLINE, _useOutline);
@@ -78,9 +90,10 @@ namespace Hrpnx.UnityExtensions.BulkMat
             EditorGUILayout.HelpBox(
                 "使い方:\n"
                     + "1. 対象フォルダにマテリアルが含まれるフォルダを設定\n"
-                    + "2. lilToonプリセットを設定\n"
-                    + "3. 「マテリアルに一括適用」ボタンをクリック\n\n"
-                    + "※ lilToon以外のシェーダーは自動的にスキップされます",
+                    + "2. lilToonプリセットを設定（任意）\n"
+                    + "3. lilSSRT参照マテリアルを設定（任意・lilSSRT化 + AO/FakeBounceコピー）\n"
+                    + "4. 「マテリアルに一括適用」ボタンをクリック\n\n"
+                    + "※ lilToon / lilSSRT 以外のシェーダーは自動的にスキップされます",
                 MessageType.Info
             );
 
@@ -106,6 +119,11 @@ namespace Hrpnx.UnityExtensions.BulkMat
             EditorGUILayout.LabelField("プリセット:", GUILayout.Width(100));
             _preset = (ScriptableObject)
                 EditorGUILayout.ObjectField(_preset, typeof(ScriptableObject), false);
+            EditorGUILayout.EndHorizontal();
+
+            EditorGUILayout.BeginHorizontal();
+            EditorGUILayout.LabelField("lilSSRT参照:", GUILayout.Width(100));
+            _ssrtRef = (Material)EditorGUILayout.ObjectField(_ssrtRef, typeof(Material), false);
             EditorGUILayout.EndHorizontal();
 
             _includeSubFolders = EditorGUILayout.Toggle("サブフォルダを含める", _includeSubFolders);
@@ -135,7 +153,7 @@ namespace Hrpnx.UnityExtensions.BulkMat
 
             EditorGUILayout.Space();
 
-            GUI.enabled = _targetDirectory != null && _preset != null;
+            GUI.enabled = _targetDirectory != null && (_preset != null || _ssrtRef != null);
             if (GUILayout.Button("マテリアルに一括適用", GUILayout.Height(30)))
             {
                 ApplyToDirectory();
@@ -165,9 +183,9 @@ namespace Hrpnx.UnityExtensions.BulkMat
                 return;
             }
 
-            if (_preset == null)
+            if (_preset == null && _ssrtRef == null)
             {
-                Debug.LogError("プリセットが指定されていません");
+                Debug.LogError("プリセットも lilSSRT 参照も指定されていません");
                 return;
             }
 
@@ -228,15 +246,114 @@ namespace Hrpnx.UnityExtensions.BulkMat
             }
 
             bool? outlineOverride = _overrideOutline ? _useOutline : (bool?)null;
-            int processed = ApplyPresetToMaterials(materials, _preset, outlineOverride);
+
+            bool hasSSRT = _ssrtRef != null;
+            // SSRT 参照の検証（fail-fast）。不正なら SSRT ステップのみスキップし base 適用は継続。
+            if (hasSSRT && !LilSSRTConverter.IsLilSSRTMaterial(_ssrtRef))
+            {
+                Debug.LogError(
+                    $"lilSSRT 参照が lilSSRT マテリアルではありません: {_ssrtRef.name}。SSRT ステップをスキップします。"
+                );
+                hasSSRT = false;
+            }
+
+            // 順序: base preset → 輪郭線上書き → lilSSRT 変換 + AO/FakeBounce コピー。
+            // outline 切替は lilToon シェーダー段階（SSRT 変換前）で確定させ、変換後もバリアントごと維持される
+            // （マテリアル設定適用ツールと同じ挙動）。AO プロパティは lilSSRT シェーダー上にしか存在しない。
+            int baseProcessed;
+            if (_preset != null)
+            {
+                baseProcessed = ApplyPresetToMaterials(materials, _preset, outlineOverride);
+            }
+            else if (outlineOverride.HasValue)
+            {
+                // プリセット未指定（lilSSRT 参照のみ）でも輪郭線上書きだけは適用する。
+                baseProcessed = ApplyOutlineOverrideToMaterials(materials, outlineOverride.Value);
+            }
+            else
+            {
+                baseProcessed = 0;
+            }
+            int ssrtProcessed = hasSSRT ? ApplySSRTToMaterials(materials, _ssrtRef) : 0;
 
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
 
             Debug.Log(
                 $"ディレクトリ一括適用完了: {directoryPath}\n"
-                    + $"{processed}個のlilToonマテリアルにプリセットを適用しました (全{materials.Count}個中)"
+                    + $"base {baseProcessed}個 / SSRT {ssrtProcessed}個 (全{materials.Count}個中)"
             );
+        }
+
+        // プリセットを通さず輪郭線の有効/無効だけを一括で上書きする。
+        // SSRT 変換前（lilToon シェーダー段階）に呼ぶ前提なので ApplyOutlineShaderOnly が正しく名前解決できる。
+        private int ApplyOutlineOverrideToMaterials(List<Material> materials, bool enable)
+        {
+            int processedCount = 0;
+
+            foreach (var material in materials)
+            {
+                if (material == null)
+                {
+                    continue;
+                }
+
+                if (
+                    material.shader == null
+                    || (
+                        !material.shader.name.Contains(LILTOON_SHADER_NAME)
+                        && !material.shader.name.Contains(LILSSRT_SHADER_NAME)
+                    )
+                )
+                {
+                    continue;
+                }
+
+                Undo.RecordObject(material, "輪郭線設定を適用");
+                ApplyOutlineShaderOnly(material, enable);
+                EditorUtility.SetDirty(material);
+                processedCount++;
+            }
+
+            return processedCount;
+        }
+
+        private int ApplySSRTToMaterials(List<Material> materials, Material ssrtRef)
+        {
+            int processedCount = 0;
+
+            foreach (var material in materials)
+            {
+                if (material == null)
+                {
+                    continue;
+                }
+
+                // lilToon / lilSSRT 以外は対象外。lilSSRT の Hidden バリアント（Hidden/lilSSRT/Fur 等）は
+                // シェーダー名に "lilToon" を含まないため、"lilSSRT" も対象に含める
+                // （既に lilSSRT 化された Fur を lilToon に戻すなど、再処理を効かせるため）。
+                if (
+                    material.shader == null
+                    || (
+                        !material.shader.name.Contains(LILTOON_SHADER_NAME)
+                        && !material.shader.name.Contains(LILSSRT_SHADER_NAME)
+                    )
+                )
+                {
+                    continue;
+                }
+
+                Undo.RecordObject(material, "lilSSRT化を適用");
+
+                LilSSRTConverter.ConvertToLilSSRT(material);
+                LilSSRTConverter.CopyAOProperties(ssrtRef, material);
+                LilSSRTConverter.CopyFakeBounceProperties(ssrtRef, material);
+
+                EditorUtility.SetDirty(material);
+                processedCount++;
+            }
+
+            return processedCount;
         }
 
         private int ApplyPresetToMaterials(
@@ -261,7 +378,16 @@ namespace Hrpnx.UnityExtensions.BulkMat
                     continue;
                 }
 
-                if (material.shader == null || !material.shader.name.Contains(LILTOON_SHADER_NAME))
+                // lilSSRT の Hidden バリアント（Hidden/lilSSRT/OpaqueOutline 等）はシェーダー名に
+                // "lilToon" を含まない（"lilSSRT/lilToon" のみ含む）。lilSSRT も対象に含めないと
+                // outline 等の lilSSRT マテリアルへ preset（影など）が適用されず取りこぼす。
+                if (
+                    material.shader == null
+                    || (
+                        !material.shader.name.Contains(LILTOON_SHADER_NAME)
+                        && !material.shader.name.Contains(LILSSRT_SHADER_NAME)
+                    )
+                )
                 {
                     continue;
                 }
