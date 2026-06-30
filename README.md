@@ -2,7 +2,7 @@
 
 Some miscellaneous Unity utilities I use.
 
-## 🚩 Installation
+## Installation
 
 ### VRChat Creator Companion (推奨)
 
@@ -10,9 +10,9 @@ Some miscellaneous Unity utilities I use.
 2. Manage Project から `hrpnx's Unity Extensions` を選択
 3. パッケージが自動的にインストールされます
 
-## 📌 Features
+## Features
 
-### 🥷 VRC Fallback Setter
+### VRC Fallback Setter
 
 アバタービルド時に全マテリアルの VRChat Custom Safety Fallback を**破壊的に**一括設定するコンポーネントです。
 
@@ -39,13 +39,13 @@ Some miscellaneous Unity utilities I use.
 4. (任意) 除外したいマテリアルを Exclusions リストに追加
 5. アバターをビルドすると自動的に適用されます
 
-### ✨ BackLit Menu Installer
+### BackLit Menu Installer
 
 アバタービルド時に lilToon の BackLit (逆光) メニューを自動生成するコンポーネントです。
 
 **主な機能：**
 
-- lilToon マテリアルの BackLit パラメータを制御するアニメーションを自動生成
+- lilToon / lilSSRT マテリアルの BackLit パラメータを制御するアニメーションを自動生成
 - Modular Avatar 経由でメニューとパラメータを自動設定
 - 除外リストでマテリアル単位の除外が可能
 
@@ -75,7 +75,7 @@ Some miscellaneous Unity utilities I use.
 5. (任意) Root Menu でメニューの追加先を指定
 6. アバターをビルドすると自動的に適用されます
 
-### 📂 BulkMat
+### BulkMat
 
 指定フォルダ内の lilToon マテリアルに lilToon プリセットを一括適用するエディターウィンドウです。
 
@@ -83,8 +83,9 @@ Some miscellaneous Unity utilities I use.
 
 - フォルダ内のマテリアルに lilToon プリセットを一括適用
 - サブフォルダを含めるかどうかの切り替え
-- lilToon 以外のシェーダーは自動スキップ
+- lilToon / lilSSRT 以外のシェーダーは自動スキップ
 - 輪郭線シェーダー (Outline) の有効/無効をプリセットとは独立して上書き可能
+- (任意) lilSSRT 参照マテリアルを指定すると lilSSRT へ変換し、AO / FakeBounce の設定をコピー
 
 **使い方：**
 
@@ -92,9 +93,10 @@ Some miscellaneous Unity utilities I use.
 2. 対象フォルダにマテリアルが含まれるフォルダを設定
 3. 適用設定に lilToon プリセットを設定
 4. (任意) 「輪郭線を上書き」を有効にして輪郭線の ON/OFF を指定
-5. 「マテリアルに一括適用」ボタンをクリック
+5. (任意) lilSSRT 参照マテリアルを設定すると lilSSRT 化 + AO/FakeBounce コピーを実行
+6. 「マテリアルに一括適用」ボタンをクリック
 
-### 💨 CheekPuff Resetter
+### CheekPuff Resetter
 
 フェイシャルトラッキングで頬を膨らませる動作をトリガーとして、引っ張られて固定された頬の PhysBone をリセットするコンポーネントです。
 
@@ -120,17 +122,18 @@ Some miscellaneous Unity utilities I use.
 4. (任意) Threshold を調整
 5. アバターをビルドすると FX レイヤーが自動生成されます
 
-## 📋 Requirements
+## Requirements
 
 - Unity 2022.3 以上
 - VRChat SDK3 Avatars
 - Modular Avatar
-- lilToon (BackLit Menu Installer 使用時)
+- lilToon (BackLit Menu Installer / BulkMat 使用時)
+- lilSSRT (BulkMat の lilSSRT 化機能 使用時、任意)
 
-## 📄 License
+## License
 
 [MIT License](LICENSE)
 
-## 👋 Contact
+## Contact
 
 - X: [@hrpnx_vrc](https://x.com/hrpnx_vrc)
