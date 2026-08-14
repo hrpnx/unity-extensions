@@ -10,8 +10,8 @@ namespace Hrpnx.UnityExtensions.BackLitMenuInstaller
     /// </summary>
     public class BackLitMenuInstaller : MonoBehaviour, IEditorOnly
     {
-        [Tooltip("BackLit の設定を適用しないマテリアル")]
-        public List<Material> Exclusions = new();
+        [Tooltip("BackLit の設定を適用しない Renderer")]
+        public List<Renderer> ExcludedRenderers = new();
 
         [Tooltip("メニューのデフォルト状態")]
         public bool Default;

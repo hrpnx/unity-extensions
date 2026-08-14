@@ -1,6 +1,9 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
+using System.Security.Cryptography;
+using System.Text;
 using nadena.dev.modular_avatar.core;
 using nadena.dev.ndmf;
 using UnityEditor;
@@ -22,6 +25,7 @@ namespace Hrpnx.UnityExtensions.BackLitMenuInstaller
     public class BackLitMenuInstallerPlugin : Plugin<BackLitMenuInstallerPlugin>
     {
         private const string BaseName = "BackLit";
+        private const string CacheKeyFileName = ".cachekey";
 
         public override string QualifiedName => "dev.hrpnx.backlit-menu-installer";
         public override string DisplayName => "BackLit Menu Installer";
@@ -44,36 +48,74 @@ namespace Hrpnx.UnityExtensions.BackLitMenuInstaller
                     }
                 );
 
-        private void CreateMenu(GameObject avatarRoot, BackLitMenuInstaller installer)
+        private static void CreateMenu(GameObject avatarRoot, BackLitMenuInstaller installer)
         {
             var renderers = avatarRoot.GetComponentsInChildren<Renderer>(true);
-            string absoluteDir = GetGeneratedAssetsAbsoluteDirectory();
-            string assetDir = GetGeneratedAssetsRelativeDirectory();
+            string cacheKey = BuildCacheKey(renderers, avatarRoot.transform, installer);
 
-            if (Directory.Exists(absoluteDir))
+            // 入力が前回と同一なら生成をまるごと省き、既存アセットを再利用する
+            if (!TryLoadCachedAssets(cacheKey, out var controller, out var menu))
             {
-                Directory.Delete(absoluteDir, true);
+                GenerateAssets(
+                    renderers,
+                    avatarRoot.transform,
+                    installer,
+                    cacheKey,
+                    out controller,
+                    out menu
+                );
             }
-            Directory.CreateDirectory(absoluteDir);
-            AssetDatabase.Refresh();
-
-            var animOnClip = CreateOnAnimationClip(renderers, avatarRoot.transform, installer);
-            CreateAsset(animOnClip, $"{assetDir}/{BaseName}_On.anim");
-
-            var animOffClip = CreateOffAnimationClip(
-                renderers,
-                avatarRoot.transform,
-                installer.Exclusions
-            );
-            CreateAsset(animOffClip, $"{assetDir}/{BaseName}_Off.anim");
-
-            var controller = CreateAnimatorController(animOnClip, animOffClip);
-            CreateAsset(controller, $"{assetDir}/{BaseName}_Controller.controller");
-
-            var menu = CreateExpressionsMenu();
-            CreateAsset(menu, $"{assetDir}/{BaseName}_Menu.asset");
 
             AttachModularAvatarComponents(installer, controller, menu);
+        }
+
+        /// <summary>
+        /// アセット生成を 1 バッチにまとめて実行する。
+        /// CreateAsset は 1 件ごとに同期インポートが走るため、StartAssetEditing で必ず束ねる。
+        /// </summary>
+        private static void GenerateAssets(
+            Renderer[] renderers,
+            Transform rootTransform,
+            BackLitMenuInstaller installer,
+            string cacheKey,
+            out AnimatorController controller,
+            out VRCExpressionsMenu menu
+        )
+        {
+            controller = null;
+            menu = null;
+
+            string assetDir = GetGeneratedAssetsRelativeDirectory();
+            PrepareGeneratedDirectory();
+
+            AssetDatabase.StartAssetEditing();
+            try
+            {
+                var animOnClip = CreateOnAnimationClip(renderers, rootTransform, installer);
+                CreateAsset(animOnClip, $"{assetDir}/{BaseName}_On.anim");
+
+                var animOffClip = CreateOffAnimationClip(
+                    renderers,
+                    rootTransform,
+                    installer.ExcludedRenderers
+                );
+                CreateAsset(animOffClip, $"{assetDir}/{BaseName}_Off.anim");
+
+                controller = CreateAnimatorController(animOnClip, animOffClip);
+                CreateAsset(controller, $"{assetDir}/{BaseName}_Controller.controller");
+
+                menu = CreateExpressionsMenu();
+                CreateAsset(menu, $"{assetDir}/{BaseName}_Menu.asset");
+
+                WriteCacheKey(cacheKey);
+            }
+            finally
+            {
+                AssetDatabase.StopAssetEditing();
+            }
+
+            AssetDatabase.SaveAssets();
+            AssetDatabase.Refresh();
         }
 
         private static string GetGeneratedAssetsAbsoluteDirectory()
@@ -85,153 +127,108 @@ namespace Hrpnx.UnityExtensions.BackLitMenuInstaller
         private static string GetGeneratedAssetsRelativeDirectory() =>
             "Packages/dev.hrpnx.unity-extensions/__Generated/BackLitMenuInstaller";
 
-        private AnimationClip CreateOnAnimationClip(
+        /// <summary>
+        /// 生成先フォルダを用意する。
+        /// CreateAsset は AssetDatabase に登録済みのフォルダを要求するため、未登録のときだけ Refresh する。
+        /// </summary>
+        private static void PrepareGeneratedDirectory()
+        {
+            string absoluteDir = GetGeneratedAssetsAbsoluteDirectory();
+            if (!Directory.Exists(absoluteDir))
+            {
+                Directory.CreateDirectory(absoluteDir);
+            }
+
+            if (!AssetDatabase.IsValidFolder(GetGeneratedAssetsRelativeDirectory()))
+            {
+                AssetDatabase.Refresh();
+            }
+        }
+
+        private static AnimationClip CreateOnAnimationClip(
             Renderer[] renderers,
             Transform rootTransform,
             BackLitMenuInstaller installer
         )
         {
             var clip = new AnimationClip();
+            var buffer = new CurveBuffer();
 
             foreach (var renderer in renderers)
             {
-                if (renderer == null)
+                if (
+                    !TryResolveAnimationTarget(
+                        renderer,
+                        rootTransform,
+                        installer.ExcludedRenderers,
+                        out string path,
+                        out var type
+                    )
+                )
                 {
                     continue;
                 }
 
-                var transform = renderer.gameObject.transform;
-                AddAnimation(
-                    transform,
-                    rootTransform,
-                    clip,
-                    "material._UseBacklight",
-                    1,
-                    installer.Exclusions
-                );
-                AddAnimation(
-                    transform,
-                    rootTransform,
-                    clip,
-                    "material._BacklightColor.r",
-                    installer.Color.r,
-                    installer.Exclusions
-                );
-                AddAnimation(
-                    transform,
-                    rootTransform,
-                    clip,
-                    "material._BacklightColor.g",
-                    installer.Color.g,
-                    installer.Exclusions
-                );
-                AddAnimation(
-                    transform,
-                    rootTransform,
-                    clip,
-                    "material._BacklightColor.b",
-                    installer.Color.b,
-                    installer.Exclusions
-                );
-                AddAnimation(
-                    transform,
-                    rootTransform,
-                    clip,
-                    "material._BacklightColor.a",
-                    installer.Color.a,
-                    installer.Exclusions
-                );
-                AddAnimation(
-                    transform,
-                    rootTransform,
-                    clip,
-                    "material._BacklightMainStrength",
-                    installer.MainStrength,
-                    installer.Exclusions
-                );
-                AddAnimation(
-                    transform,
-                    rootTransform,
-                    clip,
-                    "material._BacklightNormalStrength",
-                    installer.NormalStrength,
-                    installer.Exclusions
-                );
-                AddAnimation(
-                    transform,
-                    rootTransform,
-                    clip,
-                    "material._BacklightBorder",
-                    installer.Border,
-                    installer.Exclusions
-                );
-                AddAnimation(
-                    transform,
-                    rootTransform,
-                    clip,
-                    "material._BacklightBlur",
-                    installer.Blur,
-                    installer.Exclusions
-                );
-                AddAnimation(
-                    transform,
-                    rootTransform,
-                    clip,
-                    "material._BacklightDirectivity",
-                    installer.Directivity,
-                    installer.Exclusions
-                );
-                AddAnimation(
-                    transform,
-                    rootTransform,
-                    clip,
-                    "material._BacklightViewStrength",
-                    installer.ViewStrength,
-                    installer.Exclusions
-                );
-                AddAnimation(
-                    transform,
-                    rootTransform,
-                    clip,
-                    "material._BacklightReceiveShadow",
-                    installer.ReceiveShadow,
-                    installer.Exclusions
-                );
+                AddOnCurves(buffer, path, type, installer);
             }
 
+            buffer.ApplyTo(clip);
             return clip;
         }
 
-        private AnimationClip CreateOffAnimationClip(
+        private static void AddOnCurves(
+            CurveBuffer buffer,
+            string path,
+            Type type,
+            BackLitMenuInstaller installer
+        )
+        {
+            buffer.Add(path, type, "material._UseBacklight", 1);
+            buffer.Add(path, type, "material._BacklightColor.r", installer.Color.r);
+            buffer.Add(path, type, "material._BacklightColor.g", installer.Color.g);
+            buffer.Add(path, type, "material._BacklightColor.b", installer.Color.b);
+            buffer.Add(path, type, "material._BacklightColor.a", installer.Color.a);
+            buffer.Add(path, type, "material._BacklightMainStrength", installer.MainStrength);
+            buffer.Add(path, type, "material._BacklightNormalStrength", installer.NormalStrength);
+            buffer.Add(path, type, "material._BacklightBorder", installer.Border);
+            buffer.Add(path, type, "material._BacklightBlur", installer.Blur);
+            buffer.Add(path, type, "material._BacklightDirectivity", installer.Directivity);
+            buffer.Add(path, type, "material._BacklightViewStrength", installer.ViewStrength);
+            buffer.Add(path, type, "material._BacklightReceiveShadow", installer.ReceiveShadow);
+        }
+
+        private static AnimationClip CreateOffAnimationClip(
             Renderer[] renderers,
             Transform rootTransform,
-            List<Material> exclusions
+            List<Renderer> excludedRenderers
         )
         {
             var clip = new AnimationClip();
+            var buffer = new CurveBuffer();
 
             foreach (var renderer in renderers)
             {
-                if (renderer == null)
+                if (
+                    !TryResolveAnimationTarget(
+                        renderer,
+                        rootTransform,
+                        excludedRenderers,
+                        out string path,
+                        out var type
+                    )
+                )
                 {
                     continue;
                 }
 
-                var transform = renderer.gameObject.transform;
-                AddAnimation(
-                    transform,
-                    rootTransform,
-                    clip,
-                    "material._UseBacklight",
-                    0,
-                    exclusions
-                );
+                buffer.Add(path, type, "material._UseBacklight", 0);
             }
 
+            buffer.ApplyTo(clip);
             return clip;
         }
 
-        private AnimatorController CreateAnimatorController(
+        private static AnimatorController CreateAnimatorController(
             AnimationClip onClip,
             AnimationClip offClip
         )
@@ -326,27 +323,57 @@ namespace Hrpnx.UnityExtensions.BackLitMenuInstaller
             mergeAnimator.layerPriority = 1;
         }
 
-        private void AddAnimation(
-            Transform transform,
+        /// <summary>
+        /// アニメーション対象の Renderer かを判定し、対象なら相対パスと Renderer の型を返す。
+        /// </summary>
+        private static bool TryResolveAnimationTarget(
+            Renderer sourceRenderer,
             Transform rootTransform,
-            AnimationClip clip,
-            string propertyName,
-            float value,
-            List<Material> exclusions
+            List<Renderer> excludedRenderers,
+            out string path,
+            out Type rendererType
         )
         {
-            string path = GetRelativePath(transform, rootTransform);
-            if (path == null)
+            path = null;
+            rendererType = null;
+
+            if (sourceRenderer == null)
             {
-                return;
+                return false;
             }
 
-            var renderer = transform.GetComponent<Renderer>();
+            string relativePath = GetRelativePath(
+                sourceRenderer.gameObject.transform,
+                rootTransform
+            );
+            if (relativePath == null)
+            {
+                return false;
+            }
+
+            var renderer = sourceRenderer.gameObject.transform.GetComponent<Renderer>();
             if (renderer == null)
             {
-                return;
+                return false;
             }
 
+            if (excludedRenderers != null && excludedRenderers.Contains(renderer))
+            {
+                return false;
+            }
+
+            if (!HasTargetShader(renderer))
+            {
+                return false;
+            }
+
+            path = relativePath;
+            rendererType = renderer.GetType();
+            return true;
+        }
+
+        private static bool HasTargetShader(Renderer renderer)
+        {
             foreach (var material in renderer.sharedMaterials)
             {
                 if (material == null || material.shader == null)
@@ -355,16 +382,13 @@ namespace Hrpnx.UnityExtensions.BackLitMenuInstaller
                 }
 
                 string shaderName = material.shader.name;
-                if (
-                    (!shaderName.Contains("lilToon") && !shaderName.Contains("lilSSRT"))
-                    || (exclusions != null && exclusions.Contains(material))
-                )
+                if (shaderName.Contains("lilToon") || shaderName.Contains("lilSSRT"))
                 {
-                    continue;
+                    return true;
                 }
-
-                SetCurve(clip, propertyName, value, path, renderer.GetType());
             }
+
+            return false;
         }
 
         private static string GetRelativePath(Transform transform, Transform root)
@@ -385,38 +409,154 @@ namespace Hrpnx.UnityExtensions.BackLitMenuInstaller
             return parent == root ? path : null;
         }
 
-        private static void SetCurve(
-            AnimationClip clip,
-            string propertyName,
-            float value,
-            string path,
-            Type type
+        /// <summary>
+        /// 生成物を左右する入力すべて (installer のパラメータ + Renderer 構成) からキャッシュキーを作る。
+        /// </summary>
+        private static string BuildCacheKey(
+            Renderer[] renderers,
+            Transform rootTransform,
+            BackLitMenuInstaller installer
         )
         {
-            foreach (var binding in AnimationUtility.GetCurveBindings(clip))
+            var builder = new StringBuilder();
+            builder.Append("v1\n");
+            AppendParameters(builder, installer);
+            AppendRenderers(builder, renderers, rootTransform, installer.ExcludedRenderers);
+            return ToSha256Hex(builder.ToString());
+        }
+
+        private static void AppendParameters(StringBuilder builder, BackLitMenuInstaller installer)
+        {
+            var color = installer.Color;
+            AppendFloat(builder, color.r);
+            AppendFloat(builder, color.g);
+            AppendFloat(builder, color.b);
+            AppendFloat(builder, color.a);
+            AppendFloat(builder, installer.MainStrength);
+            AppendFloat(builder, installer.NormalStrength);
+            AppendFloat(builder, installer.Border);
+            AppendFloat(builder, installer.Blur);
+            AppendFloat(builder, installer.Directivity);
+            AppendFloat(builder, installer.ViewStrength);
+            AppendFloat(builder, installer.ReceiveShadow);
+            builder.Append(installer.Default ? '1' : '0').Append('|');
+            builder.Append(installer.Saved ? '1' : '0').Append('|');
+            builder
+                .Append(
+                    installer.RootMenu == null
+                        ? string.Empty
+                        : AssetDatabase.GetAssetPath(installer.RootMenu)
+                )
+                .Append('\n');
+        }
+
+        private static void AppendRenderers(
+            StringBuilder builder,
+            Renderer[] renderers,
+            Transform rootTransform,
+            List<Renderer> excludedRenderers
+        )
+        {
+            foreach (var renderer in renderers)
             {
-                if (!binding.propertyName.StartsWith(propertyName) || binding.path != path)
+                if (renderer == null)
                 {
+                    builder.Append("-|-|0\n");
                     continue;
                 }
 
-                var editorCurve = AnimationUtility.GetEditorCurve(clip, binding);
-                editorCurve.AddKey(0, value);
-                AnimationUtility.SetEditorCurve(clip, binding, editorCurve);
-                return;
+                bool isTarget = TryResolveAnimationTarget(
+                    renderer,
+                    rootTransform,
+                    excludedRenderers,
+                    out _,
+                    out _
+                );
+                builder
+                    .Append(GetRelativePath(renderer.gameObject.transform, rootTransform) ?? "-")
+                    .Append('|')
+                    .Append(renderer.GetType().FullName)
+                    .Append('|')
+                    .Append(isTarget ? '1' : '0')
+                    .Append('\n');
+            }
+        }
+
+        private static void AppendFloat(StringBuilder builder, float value) =>
+            builder.Append(value.ToString("R", CultureInfo.InvariantCulture)).Append('|');
+
+        private static string ToSha256Hex(string source)
+        {
+            using (var sha = SHA256.Create())
+            {
+                var hash = sha.ComputeHash(Encoding.UTF8.GetBytes(source));
+                var builder = new StringBuilder(hash.Length * 2);
+                foreach (byte b in hash)
+                {
+                    builder.Append(b.ToString("x2", CultureInfo.InvariantCulture));
+                }
+
+                return builder.ToString();
+            }
+        }
+
+        /// <summary>
+        /// キャッシュキーが一致し、生成アセットが 4 件すべて健在なら再利用する。
+        /// </summary>
+        private static bool TryLoadCachedAssets(
+            string cacheKey,
+            out AnimatorController controller,
+            out VRCExpressionsMenu menu
+        )
+        {
+            controller = null;
+            menu = null;
+
+            if (!MatchesCacheKey(cacheKey))
+            {
+                return false;
             }
 
-            var curveBinding = new EditorCurveBinding
-            {
-                path = path,
-                type = type,
-                propertyName = propertyName,
-            };
+            string assetDir = GetGeneratedAssetsRelativeDirectory();
+            var cachedOnClip = AssetDatabase.LoadAssetAtPath<AnimationClip>(
+                $"{assetDir}/{BaseName}_On.anim"
+            );
+            var cachedOffClip = AssetDatabase.LoadAssetAtPath<AnimationClip>(
+                $"{assetDir}/{BaseName}_Off.anim"
+            );
+            var cachedController = AssetDatabase.LoadAssetAtPath<AnimatorController>(
+                $"{assetDir}/{BaseName}_Controller.controller"
+            );
+            var cachedMenu = AssetDatabase.LoadAssetAtPath<VRCExpressionsMenu>(
+                $"{assetDir}/{BaseName}_Menu.asset"
+            );
 
-            var curve = new AnimationCurve();
-            curve.AddKey(0, value);
-            AnimationUtility.SetEditorCurve(clip, curveBinding, curve);
+            if (
+                cachedOnClip == null
+                || cachedOffClip == null
+                || cachedController == null
+                || cachedMenu == null
+            )
+            {
+                return false;
+            }
+
+            controller = cachedController;
+            menu = cachedMenu;
+            return true;
         }
+
+        private static string GetCacheKeyPath() =>
+            Path.Combine(GetGeneratedAssetsAbsoluteDirectory(), CacheKeyFileName);
+
+        private static bool MatchesCacheKey(string cacheKey)
+        {
+            string keyPath = GetCacheKeyPath();
+            return File.Exists(keyPath) && File.ReadAllText(keyPath) == cacheKey;
+        }
+
+        private static void WriteCacheKey(string cacheKey) =>
+            File.WriteAllText(GetCacheKeyPath(), cacheKey);
 
         private static void CreateAsset(UnityEngine.Object asset, string dest)
         {
@@ -425,9 +565,50 @@ namespace Hrpnx.UnityExtensions.BackLitMenuInstaller
                 AssetDatabase.DeleteAsset(dest);
             }
 
-            AssetDatabase.CreateAsset(asset, AssetDatabase.GenerateUniqueAssetPath(dest));
-            AssetDatabase.SaveAssets();
-            AssetDatabase.Refresh();
+            AssetDatabase.CreateAsset(asset, dest);
+        }
+
+        /// <summary>
+        /// カーブを溜めてから SetEditorCurves で一括適用するバッファ。
+        /// GetCurveBindings の線形走査 (O(n^2)) を避けるため、重複は (path, propertyName) の集合で弾く。
+        /// </summary>
+        private sealed class CurveBuffer
+        {
+            private readonly List<EditorCurveBinding> _bindings = new List<EditorCurveBinding>();
+            private readonly List<AnimationCurve> _curves = new List<AnimationCurve>();
+            private readonly HashSet<string> _registered = new HashSet<string>();
+
+            public void Add(string path, Type type, string propertyName, float value)
+            {
+                // 既に登録済みなら何もしない (旧実装も時刻 0 のキー再追加で実質 no-op だった)
+                if (!_registered.Add($"{path}\0{propertyName}"))
+                {
+                    return;
+                }
+
+                _bindings.Add(
+                    new EditorCurveBinding
+                    {
+                        path = path,
+                        type = type,
+                        propertyName = propertyName,
+                    }
+                );
+
+                var curve = new AnimationCurve();
+                curve.AddKey(0, value);
+                _curves.Add(curve);
+            }
+
+            public void ApplyTo(AnimationClip clip)
+            {
+                if (_bindings.Count == 0)
+                {
+                    return;
+                }
+
+                AnimationUtility.SetEditorCurves(clip, _bindings.ToArray(), _curves.ToArray());
+            }
         }
     }
 }

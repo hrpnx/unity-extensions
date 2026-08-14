@@ -47,13 +47,13 @@ Some miscellaneous Unity utilities I use.
 
 - lilToon / lilSSRT マテリアルの BackLit パラメータを制御するアニメーションを自動生成
 - Modular Avatar 経由でメニューとパラメータを自動設定
-- 除外リストでマテリアル単位の除外が可能
+- 除外リストで Renderer 単位の除外が可能
 
 **設定項目：**
 
 | 項目            | 説明                               |
 | --------------- | ---------------------------------- |
-| Exclusions      | BackLit 設定を適用しないマテリアル |
+| Excluded Renderers | BackLit 設定を適用しない Renderer |
 | Default         | メニューのデフォルト状態 (ON/OFF)  |
 | Saved           | パラメータを保存するかどうか       |
 | Color           | BackLit の色 (HDR)                 |
@@ -71,7 +71,8 @@ Some miscellaneous Unity utilities I use.
 1. アバタールート直下に空の GameObject を作成
 2. `BackLitMenuInstaller` コンポーネントを追加
 3. インスペクターで BackLit のパラメータを調整
-4. (任意) 除外したいマテリアルを Exclusions リストに追加
+4. (任意) 除外したい Renderer を Excluded Renderers リストに追加
+   - マテリアルプロパティのアニメーションカーブは Unity の制約上 Renderer 単位でしか適用できないため、除外はマテリアル単位ではなく Renderer 単位で指定する
 5. (任意) Root Menu でメニューの追加先を指定
 6. アバターをビルドすると自動的に適用されます
 
