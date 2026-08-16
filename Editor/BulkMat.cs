@@ -331,7 +331,7 @@ namespace Hrpnx.UnityExtensions.BulkMat
 
                 // lilToon / lilSSRT 以外は対象外。lilSSRT の Hidden バリアント（Hidden/lilSSRT/Fur 等）は
                 // シェーダー名に "lilToon" を含まないため、"lilSSRT" も対象に含める
-                // （既に lilSSRT 化された Fur を lilToon に戻すなど、再処理を効かせるため）。
+                // （既に lilSSRT 化されたマテリアルにも AO プロパティ再適用を効かせるため）。
                 if (
                     material.shader == null
                     || (
