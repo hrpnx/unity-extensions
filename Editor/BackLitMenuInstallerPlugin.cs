@@ -101,8 +101,15 @@ namespace Hrpnx.UnityExtensions.BackLitMenuInstaller
                 );
                 CreateAsset(animOffClip, $"{assetDir}/{BaseName}_Off.anim");
 
-                controller = CreateAnimatorController(animOnClip, animOffClip);
+                // AnimatorController は先にアセット化してから中身を組む。
+                // AddLayer / AddState / AddAnyStateTransition は
+                // AssetDatabase.GetAssetPath(controller) が空でないときだけ
+                // ステートマシン等をサブアセットとして登録するため、
+                // メモリ上で組み立ててから CreateAsset すると m_StateMachine が
+                // {fileID: 0} のまま保存され、レイヤーが空の .controller になる。
+                controller = new AnimatorController();
                 CreateAsset(controller, $"{assetDir}/{BaseName}_Controller.controller");
+                BuildAnimatorController(controller, animOnClip, animOffClip);
 
                 menu = CreateExpressionsMenu();
                 CreateAsset(menu, $"{assetDir}/{BaseName}_Menu.asset");
@@ -228,12 +235,15 @@ namespace Hrpnx.UnityExtensions.BackLitMenuInstaller
             return clip;
         }
 
-        private static AnimatorController CreateAnimatorController(
+        /// <summary>
+        /// アセット化済みの AnimatorController にレイヤーとステートを組み立てる。
+        /// </summary>
+        private static void BuildAnimatorController(
+            AnimatorController controller,
             AnimationClip onClip,
             AnimationClip offClip
         )
         {
-            var controller = new AnimatorController();
             controller.AddParameter(
                 new AnimatorControllerParameter
                 {
@@ -244,32 +254,43 @@ namespace Hrpnx.UnityExtensions.BackLitMenuInstaller
             );
             controller.AddLayer(BaseName);
 
-            var layer = controller.layers[0];
+            var layers = controller.layers;
+            var layer = layers[0];
             layer.name = BaseName;
-            layer.stateMachine.name = BaseName;
-            layer.stateMachine.entryPosition = new Vector3(0, 0);
-            layer.stateMachine.anyStatePosition = new Vector3(300, 0);
-            layer.stateMachine.exitPosition = new Vector3(0, -75);
 
-            var offState = layer.stateMachine.AddState($"{BaseName}_Off", new Vector3(150, 150));
+            // AddLayer(string) の既定の defaultWeight は 0。
+            // 0 のままだとレイヤーの出力が一切合成されず、アニメーションが反映されない。
+            layer.defaultWeight = 1f;
+
+            var stateMachine = layer.stateMachine;
+            stateMachine.name = BaseName;
+            stateMachine.entryPosition = new Vector3(0, 0);
+            stateMachine.anyStatePosition = new Vector3(300, 0);
+            stateMachine.exitPosition = new Vector3(0, -75);
+
+            var offState = stateMachine.AddState($"{BaseName}_Off", new Vector3(150, 150));
             offState.motion = offClip;
             offState.writeDefaultValues = false;
 
-            var toOffTransition = layer.stateMachine.AddAnyStateTransition(offState);
+            var toOffTransition = stateMachine.AddAnyStateTransition(offState);
             toOffTransition.AddCondition(AnimatorConditionMode.IfNot, 0, BaseName);
             toOffTransition.hasExitTime = false;
             toOffTransition.duration = 0f;
+            toOffTransition.canTransitionToSelf = false;
 
-            var onState = layer.stateMachine.AddState($"{BaseName}_On", new Vector3(150, -150));
+            var onState = stateMachine.AddState($"{BaseName}_On", new Vector3(150, -150));
             onState.motion = onClip;
             onState.writeDefaultValues = false;
 
-            var toOnTransition = layer.stateMachine.AddAnyStateTransition(onState);
+            var toOnTransition = stateMachine.AddAnyStateTransition(onState);
             toOnTransition.AddCondition(AnimatorConditionMode.If, 0, BaseName);
             toOnTransition.hasExitTime = false;
             toOnTransition.duration = 0f;
+            toOnTransition.canTransitionToSelf = false;
 
-            return controller;
+            // controller.layers はコピーを返すため、書き戻さないと
+            // defaultWeight / name の変更が破棄される。
+            controller.layers = layers;
         }
 
         private static VRCExpressionsMenu CreateExpressionsMenu()
@@ -419,7 +440,8 @@ namespace Hrpnx.UnityExtensions.BackLitMenuInstaller
         )
         {
             var builder = new StringBuilder();
-            builder.Append("v1\n");
+            // 生成ロジックを変えたらここを上げる (旧世代の生成物を再利用させないため)
+            builder.Append("v2\n");
             AppendParameters(builder, installer);
             AppendRenderers(builder, renderers, rootTransform, installer.ExcludedRenderers);
             return ToSha256Hex(builder.ToString());
