@@ -1,4 +1,5 @@
 using System;
+using System.Globalization;
 using System.IO;
 using Hrpnx.UnityExtensions.CheekPuffResetter;
 using nadena.dev.modular_avatar.core;
@@ -21,6 +22,12 @@ namespace Hrpnx.UnityExtensions.CheekPuffResetter
         private const string PluginName = "CheekPuffResetter";
         private const string ParamLeft = "CheekPuffLeft";
         private const string ParamRight = "CheekPuffRight";
+        private const string CacheKeyFileName = ".cachekey";
+        private const string EnableClipLeftName = "Enable_L.anim";
+        private const string DisableClipLeftName = "Disable_L.anim";
+        private const string EnableClipRightName = "Enable_R.anim";
+        private const string DisableClipRightName = "Disable_R.anim";
+        private const string ControllerName = "CheekPuffReset_Controller.controller";
 
         public override string QualifiedName => "dev.hrpnx.cheekpuff-resetter";
         public override string DisplayName => "CheekPuff Resetter";
@@ -83,34 +90,78 @@ namespace Hrpnx.UnityExtensions.CheekPuffResetter
                 return;
             }
 
-            PrepareGeneratedDirectory();
-
-            string assetDir = GetGeneratedAssetsRelativeDirectory();
             var typeL = physBoneL.GetType();
             var typeR = physBoneR.GetType();
+            string cacheKey = BuildCacheKey(pathL, pathR, typeL, typeR, resetter.Threshold);
 
-            var enableClipL = CreatePhysBoneClip(pathL, typeL, enabled: true);
-            CreateAsset(enableClipL, $"{assetDir}/Enable_L.anim");
-
-            var disableClipL = CreatePhysBoneClip(pathL, typeL, enabled: false);
-            CreateAsset(disableClipL, $"{assetDir}/Disable_L.anim");
-
-            var enableClipR = CreatePhysBoneClip(pathR, typeR, enabled: true);
-            CreateAsset(enableClipR, $"{assetDir}/Enable_R.anim");
-
-            var disableClipR = CreatePhysBoneClip(pathR, typeR, enabled: false);
-            CreateAsset(disableClipR, $"{assetDir}/Disable_R.anim");
-
-            var controller = CreateAnimatorController(
-                resetter.Threshold,
-                enableClipL,
-                disableClipL,
-                enableClipR,
-                disableClipR
-            );
-            CreateAsset(controller, $"{assetDir}/CheekPuffReset_Controller.controller");
+            // 入力が前回と同一なら生成をまるごと省き、既存アセットを再利用する
+            var controller =
+                TryLoadCachedController(cacheKey)
+                ?? GenerateAssets(pathL, pathR, typeL, typeR, resetter.Threshold, cacheKey);
 
             AttachModularAvatarComponents(resetter, controller);
+        }
+
+        /// <summary>
+        /// アセット生成を 1 バッチにまとめて実行する。
+        /// CreateAsset は 1 件ごとに同期インポートが走るため、StartAssetEditing で必ず束ねる。
+        /// </summary>
+        private static AnimatorController GenerateAssets(
+            string pathL,
+            string pathR,
+            Type typeL,
+            Type typeR,
+            float threshold,
+            string cacheKey
+        )
+        {
+            string assetDir = GetGeneratedAssetsRelativeDirectory();
+            PrepareGeneratedDirectory();
+
+            AnimatorController controller;
+            AssetDatabase.StartAssetEditing();
+            try
+            {
+                var enableClipL = CreatePhysBoneClip(pathL, typeL, enabled: true);
+                CreateAsset(enableClipL, $"{assetDir}/{EnableClipLeftName}");
+
+                var disableClipL = CreatePhysBoneClip(pathL, typeL, enabled: false);
+                CreateAsset(disableClipL, $"{assetDir}/{DisableClipLeftName}");
+
+                var enableClipR = CreatePhysBoneClip(pathR, typeR, enabled: true);
+                CreateAsset(enableClipR, $"{assetDir}/{EnableClipRightName}");
+
+                var disableClipR = CreatePhysBoneClip(pathR, typeR, enabled: false);
+                CreateAsset(disableClipR, $"{assetDir}/{DisableClipRightName}");
+
+                // AnimatorController は先にアセット化してから中身を組む。
+                // AddLayer / AddState / AddTransition は
+                // AssetDatabase.GetAssetPath(controller) が空でないときだけ
+                // ステートマシン等をサブアセットとして登録するため、
+                // メモリ上で組み立ててから CreateAsset すると m_StateMachine が
+                // {fileID: 0} のまま保存され、レイヤーが空の .controller になる。
+                controller = new AnimatorController();
+                CreateAsset(controller, $"{assetDir}/{ControllerName}");
+                BuildAnimatorController(
+                    controller,
+                    threshold,
+                    enableClipL,
+                    disableClipL,
+                    enableClipR,
+                    disableClipR
+                );
+
+                WriteCacheKey(cacheKey);
+            }
+            finally
+            {
+                AssetDatabase.StopAssetEditing();
+            }
+
+            AssetDatabase.SaveAssets();
+            AssetDatabase.Refresh();
+
+            return controller;
         }
 
         /// <summary>
@@ -149,7 +200,11 @@ namespace Hrpnx.UnityExtensions.CheekPuffResetter
             return clip;
         }
 
-        private static AnimatorController CreateAnimatorController(
+        /// <summary>
+        /// アセット化済みの AnimatorController にレイヤーとステートを組み立てる。
+        /// </summary>
+        private static void BuildAnimatorController(
+            AnimatorController controller,
             float threshold,
             AnimationClip enableClipL,
             AnimationClip disableClipL,
@@ -157,8 +212,6 @@ namespace Hrpnx.UnityExtensions.CheekPuffResetter
             AnimationClip disableClipR
         )
         {
-            var controller = new AnimatorController();
-
             controller.AddParameter(
                 new AnimatorControllerParameter
                 {
@@ -179,11 +232,11 @@ namespace Hrpnx.UnityExtensions.CheekPuffResetter
             controller.AddLayer("CheekReset_L");
             controller.AddLayer("CheekReset_R");
 
-            // AddLayer で追加した 2 層目以降は defaultWeight = 0 のため書き戻す
+            // AddLayer(string) が作るレイヤーの defaultWeight は 0。
+            // 0 のままだとレイヤーの出力が一切合成されず、アニメーションが反映されない。
             var layers = controller.layers;
             layers[0].defaultWeight = 1f;
             layers[1].defaultWeight = 1f;
-            controller.layers = layers;
 
             SetupResetLayer(
                 layers[0].stateMachine,
@@ -200,7 +253,8 @@ namespace Hrpnx.UnityExtensions.CheekPuffResetter
                 disableClipR
             );
 
-            return controller;
+            // controller.layers はコピーを返すため、書き戻さないと defaultWeight の変更が破棄される
+            controller.layers = layers;
         }
 
         /// <summary>
@@ -307,16 +361,87 @@ namespace Hrpnx.UnityExtensions.CheekPuffResetter
             return parent == root ? path : null;
         }
 
+        /// <summary>
+        /// 生成先フォルダを用意する。
+        /// CreateAsset は AssetDatabase に登録済みのフォルダを要求するため、未登録のときだけ Refresh する。
+        /// </summary>
         private static void PrepareGeneratedDirectory()
         {
             string absoluteDir = GetGeneratedAssetsAbsoluteDirectory();
-            if (Directory.Exists(absoluteDir))
+            if (!Directory.Exists(absoluteDir))
             {
-                Directory.Delete(absoluteDir, true);
+                Directory.CreateDirectory(absoluteDir);
             }
-            Directory.CreateDirectory(absoluteDir);
-            AssetDatabase.Refresh();
+
+            if (!AssetDatabase.IsValidFolder(GetGeneratedAssetsRelativeDirectory()))
+            {
+                AssetDatabase.Refresh();
+            }
         }
+
+        /// <summary>
+        /// 生成物を左右する入力 (ボーンの相対パス・PhysBone の型・閾値) からキャッシュキーを作る。
+        /// </summary>
+        private static string BuildCacheKey(
+            string pathL,
+            string pathR,
+            Type typeL,
+            Type typeR,
+            float threshold
+        ) =>
+            string.Join(
+                "\n",
+                "v1",
+                pathL,
+                pathR,
+                typeL.FullName,
+                typeR.FullName,
+                threshold.ToString("R", CultureInfo.InvariantCulture)
+            );
+
+        /// <summary>
+        /// キャッシュキーが一致し、生成アセットが 5 件すべて健在なら AnimatorController を返す。
+        /// </summary>
+        private static AnimatorController TryLoadCachedController(string cacheKey)
+        {
+            if (!MatchesCacheKey(cacheKey))
+            {
+                return null;
+            }
+
+            string assetDir = GetGeneratedAssetsRelativeDirectory();
+            string[] clipNames = new[]
+            {
+                EnableClipLeftName,
+                DisableClipLeftName,
+                EnableClipRightName,
+                DisableClipRightName,
+            };
+
+            foreach (string clipName in clipNames)
+            {
+                if (AssetDatabase.LoadAssetAtPath<AnimationClip>($"{assetDir}/{clipName}") == null)
+                {
+                    return null;
+                }
+            }
+
+            return AssetDatabase.LoadAssetAtPath<AnimatorController>(
+                $"{assetDir}/{ControllerName}"
+            );
+        }
+
+        private static string GetCacheKeyPath() =>
+            Path.Combine(GetGeneratedAssetsAbsoluteDirectory(), CacheKeyFileName);
+
+        private static bool MatchesCacheKey(string cacheKey)
+        {
+            string keyPath = GetCacheKeyPath();
+            return File.Exists(keyPath) && File.ReadAllText(keyPath) == cacheKey;
+        }
+
+        private static void WriteCacheKey(string cacheKey) =>
+            File.WriteAllText(GetCacheKeyPath(), cacheKey);
 
         private static string GetGeneratedAssetsAbsoluteDirectory()
         {
@@ -333,9 +458,8 @@ namespace Hrpnx.UnityExtensions.CheekPuffResetter
             {
                 AssetDatabase.DeleteAsset(dest);
             }
-            AssetDatabase.CreateAsset(asset, AssetDatabase.GenerateUniqueAssetPath(dest));
-            AssetDatabase.SaveAssets();
-            AssetDatabase.Refresh();
+
+            AssetDatabase.CreateAsset(asset, dest);
         }
     }
 }

@@ -16,12 +16,10 @@ namespace Hrpnx.UnityExtensions
     /// 変換の補強:
     ///  - Material Variant は Unity がシェーダー差し替えを禁止するため、ルート（非バリアント）親を変換して継承させる。
     ///  - 同名重複シェーダーで lilToon の参照一致ベース変換が素通りする場合、名前ベースの fallback で差し替える。
-    ///  - Fur は lilSSRT 側シェーダーが未対応（コンパイルエラー）のためスキップする。
     /// </summary>
     public static class LilSSRTConverter
     {
         private const string LilSSRTShaderToken = "lilSSRT";
-        private const string FurShaderToken = "Fur";
         private const string InspectorTypeName = "lilToon.lilSSRTInspector, lilSSRT.Editor";
         private const string ConvertMethodName = "ConvertMaterialToCustomShader";
         private const string ReplaceMethodName = "ReplaceToCustomShaders";
@@ -89,7 +87,6 @@ namespace Hrpnx.UnityExtensions
         private static bool _resolveFailed;
 
         private static Dictionary<string, Shader> _nameToSSRT; // base lilToon シェーダー名 → lilSSRT シェーダー
-        private static Dictionary<string, Shader> _ssrtToBase; // lilSSRT シェーダー名 → base lilToon シェーダー（Fur 戻し用）
         private static bool _mapAttempted;
         private static bool _mapFailed;
 
@@ -103,7 +100,7 @@ namespace Hrpnx.UnityExtensions
 
         /// <summary>
         /// マテリアルを対応する lilSSRT バリアントへ変換する。
-        /// Variant はルート親を変換、参照不一致は名前 fallback、Fur はスキップ。
+        /// Variant はルート親を変換、参照不一致は名前 fallback。
         /// </summary>
         public static bool ConvertToLilSSRT(Material material)
         {
@@ -116,14 +113,6 @@ namespace Hrpnx.UnityExtensions
             Material owner = ResolveShaderOwner(material);
             if (owner == null || owner.shader == null)
             {
-                return false;
-            }
-
-            // Fur は lilSSRT 側シェーダーがコンパイル不可（マテリアルエラーになる）。
-            // どの開始状態でも実行後に必ず lilToon Fur（正常）へ揃える。
-            if (owner.shader.name.Contains(FurShaderToken))
-            {
-                EnsureFurStaysLilToon(owner);
                 return false;
             }
 
@@ -225,37 +214,6 @@ namespace Hrpnx.UnityExtensions
                 {
                     target.SetTexture(prop, reference.GetTexture(prop));
                 }
-            }
-        }
-
-        // Fur マテリアルがエラー化しないよう lilToon Fur に揃える。
-        // lilSSRT Fur（壊れている）なら lilToon Fur に戻し、既に lilToon Fur ならスキップ。
-        private static void EnsureFurStaysLilToon(Material owner)
-        {
-            if (!IsLilSSRTMaterial(owner))
-            {
-                Debug.LogWarning(
-                    $"[BulkMat] Fur マテリアルは lilSSRT 変換をスキップします（lilSSRT の Fur シェーダーが未対応）: {owner.name}"
-                );
-                return;
-            }
-
-            if (
-                EnsureNameMap()
-                && _ssrtToBase.TryGetValue(owner.shader.name, out var lilToonFur)
-                && lilToonFur != null
-            )
-            {
-                owner.shader = lilToonFur;
-                Debug.LogWarning(
-                    $"[BulkMat] Fur は lilSSRT 非対応のため lilToon Fur に戻しました: {owner.name}"
-                );
-            }
-            else
-            {
-                Debug.LogError(
-                    $"[BulkMat] Fur ({owner.name}) を lilToon に戻せませんでした（対応する lilToon Fur シェーダーが見つかりません）。"
-                );
             }
         }
 
@@ -382,7 +340,6 @@ namespace Hrpnx.UnityExtensions
                 lilShaderManager.InitializeShaders(); // 静的フィールドを base lilToon に戻す
 
                 var map = new Dictionary<string, Shader>();
-                var reverse = new Dictionary<string, Shader>();
                 for (int i = 0; i < fields.Length; i++)
                 {
                     Shader b = baseShaders[i];
@@ -396,15 +353,9 @@ namespace Hrpnx.UnityExtensions
                     {
                         map[b.name] = s;
                     }
-
-                    if (!reverse.ContainsKey(s.name))
-                    {
-                        reverse[s.name] = b;
-                    }
                 }
 
                 _nameToSSRT = map;
-                _ssrtToBase = reverse;
                 return true;
             }
             catch (Exception e)

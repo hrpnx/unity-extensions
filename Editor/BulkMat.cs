@@ -331,7 +331,7 @@ namespace Hrpnx.UnityExtensions.BulkMat
 
                 // lilToon / lilSSRT 以外は対象外。lilSSRT の Hidden バリアント（Hidden/lilSSRT/Fur 等）は
                 // シェーダー名に "lilToon" を含まないため、"lilSSRT" も対象に含める
-                // （既に lilSSRT 化された Fur を lilToon に戻すなど、再処理を効かせるため）。
+                // （既に lilSSRT 化されたマテリアルにも AO プロパティ再適用を効かせるため）。
                 if (
                     material.shader == null
                     || (
@@ -482,7 +482,7 @@ namespace Hrpnx.UnityExtensions.BulkMat
                         : shaderName.Substring(0, shaderName.Length - "Outline".Length);
             }
 
-            var targetShader = Shader.Find(targetName);
+            var targetShader = FindLilToonShader(targetName);
             if (targetShader == null)
             {
                 Debug.LogWarning(
@@ -492,6 +492,58 @@ namespace Hrpnx.UnityExtensions.BulkMat
             }
 
             material.shader = targetShader;
+        }
+
+        // 公式 lilToon パッケージ配下のシェーダーを最優先で名前解決する。
+        // 焼き込み/最適化シェーダーが lilToon の内部名（例: "Hidden/lilToonOutline"）を名乗ると、
+        // Shader.Find は同名のうち1つ（プロジェクト内の焼き込み版など）を返すため、RimShade 等の機能を
+        // 欠いたシェーダーが誤って割り当たる。パスに公式パッケージ名を含むものを優先して衝突を回避する。
+        private const string LILTOON_PACKAGE_HINT = "jp.lilxyzw.liltoon";
+        private static readonly Dictionary<string, Shader> _resolvedShaderCache =
+            new Dictionary<string, Shader>();
+
+        private static Shader FindLilToonShader(string shaderName)
+        {
+            if (string.IsNullOrEmpty(shaderName))
+            {
+                return null;
+            }
+
+            if (_resolvedShaderCache.TryGetValue(shaderName, out var cached) && cached != null)
+            {
+                return cached;
+            }
+
+            Shader official = null;
+            Shader fallback = null;
+            foreach (var guid in AssetDatabase.FindAssets("t:Shader"))
+            {
+                var path = AssetDatabase.GUIDToAssetPath(guid);
+                var shader = AssetDatabase.LoadAssetAtPath<Shader>(path);
+                if (shader == null || shader.name != shaderName)
+                {
+                    continue;
+                }
+
+                if (path.Contains(LILTOON_PACKAGE_HINT))
+                {
+                    official = shader;
+                    break;
+                }
+
+                fallback = shader;
+            }
+
+            var resolved =
+                official != null
+                    ? official
+                    : (fallback != null ? fallback : Shader.Find(shaderName));
+            if (resolved != null)
+            {
+                _resolvedShaderCache[shaderName] = resolved;
+            }
+
+            return resolved;
         }
 
         private static void ApplyPropertiesManually(
