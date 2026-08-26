@@ -535,7 +535,9 @@ namespace Hrpnx.UnityExtensions.BulkMat
             }
 
             var resolved =
-                official != null ? official : (fallback != null ? fallback : Shader.Find(shaderName));
+                official != null
+                    ? official
+                    : (fallback != null ? fallback : Shader.Find(shaderName));
             if (resolved != null)
             {
                 _resolvedShaderCache[shaderName] = resolved;

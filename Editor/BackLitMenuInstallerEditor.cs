@@ -84,9 +84,7 @@ namespace Hrpnx.UnityExtensions.BackLitMenuInstaller
             );
             _border = serializedObject.FindProperty(nameof(BackLitMenuInstaller.Border));
             _blur = serializedObject.FindProperty(nameof(BackLitMenuInstaller.Blur));
-            _directivity = serializedObject.FindProperty(
-                nameof(BackLitMenuInstaller.Directivity)
-            );
+            _directivity = serializedObject.FindProperty(nameof(BackLitMenuInstaller.Directivity));
             _viewStrength = serializedObject.FindProperty(
                 nameof(BackLitMenuInstaller.ViewStrength)
             );

@@ -72,7 +72,7 @@ Some miscellaneous Unity utilities I use.
 2. `BackLitMenuInstaller` コンポーネントを追加
 3. インスペクターで BackLit のパラメータを調整
 4. (任意) 除外したい Renderer を Excluded Renderers リストに追加
-   - マテリアルプロパティのアニメーションカーブは Unity の制約上 Renderer 単位でしか適用できないため、除外はマテリアル単位ではなく Renderer 単位で指定する
+    - マテリアルプロパティのアニメーションカーブは Unity の制約上 Renderer 単位でしか適用できないため、除外はマテリアル単位ではなく Renderer 単位で指定する
 5. (任意) Root Menu でメニューの追加先を指定
 6. アバターをビルドすると自動的に適用されます
 
