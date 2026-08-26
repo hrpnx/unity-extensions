@@ -134,14 +134,22 @@ namespace Hrpnx.UnityExtensions.CheekPuffResetter
                 var disableClipR = CreatePhysBoneClip(pathR, typeR, enabled: false);
                 CreateAsset(disableClipR, $"{assetDir}/{DisableClipRightName}");
 
-                controller = CreateAnimatorController(
+                // AnimatorController は先にアセット化してから中身を組む。
+                // AddLayer / AddState / AddTransition は
+                // AssetDatabase.GetAssetPath(controller) が空でないときだけ
+                // ステートマシン等をサブアセットとして登録するため、
+                // メモリ上で組み立ててから CreateAsset すると m_StateMachine が
+                // {fileID: 0} のまま保存され、レイヤーが空の .controller になる。
+                controller = new AnimatorController();
+                CreateAsset(controller, $"{assetDir}/{ControllerName}");
+                BuildAnimatorController(
+                    controller,
                     threshold,
                     enableClipL,
                     disableClipL,
                     enableClipR,
                     disableClipR
                 );
-                CreateAsset(controller, $"{assetDir}/{ControllerName}");
 
                 WriteCacheKey(cacheKey);
             }
@@ -192,7 +200,11 @@ namespace Hrpnx.UnityExtensions.CheekPuffResetter
             return clip;
         }
 
-        private static AnimatorController CreateAnimatorController(
+        /// <summary>
+        /// アセット化済みの AnimatorController にレイヤーとステートを組み立てる。
+        /// </summary>
+        private static void BuildAnimatorController(
+            AnimatorController controller,
             float threshold,
             AnimationClip enableClipL,
             AnimationClip disableClipL,
@@ -200,8 +212,6 @@ namespace Hrpnx.UnityExtensions.CheekPuffResetter
             AnimationClip disableClipR
         )
         {
-            var controller = new AnimatorController();
-
             controller.AddParameter(
                 new AnimatorControllerParameter
                 {
@@ -222,11 +232,11 @@ namespace Hrpnx.UnityExtensions.CheekPuffResetter
             controller.AddLayer("CheekReset_L");
             controller.AddLayer("CheekReset_R");
 
-            // AddLayer で追加した 2 層目以降は defaultWeight = 0 のため書き戻す
+            // AddLayer(string) が作るレイヤーの defaultWeight は 0。
+            // 0 のままだとレイヤーの出力が一切合成されず、アニメーションが反映されない。
             var layers = controller.layers;
             layers[0].defaultWeight = 1f;
             layers[1].defaultWeight = 1f;
-            controller.layers = layers;
 
             SetupResetLayer(
                 layers[0].stateMachine,
@@ -243,7 +253,8 @@ namespace Hrpnx.UnityExtensions.CheekPuffResetter
                 disableClipR
             );
 
-            return controller;
+            // controller.layers はコピーを返すため、書き戻さないと defaultWeight の変更が破棄される
+            controller.layers = layers;
         }
 
         /// <summary>
