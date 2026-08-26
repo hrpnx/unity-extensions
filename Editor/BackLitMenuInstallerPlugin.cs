@@ -524,7 +524,7 @@ namespace Hrpnx.UnityExtensions.BackLitMenuInstaller
         {
             using (var sha = SHA256.Create())
             {
-                var hash = sha.ComputeHash(Encoding.UTF8.GetBytes(source));
+                byte[] hash = sha.ComputeHash(Encoding.UTF8.GetBytes(source));
                 var builder = new StringBuilder(hash.Length * 2);
                 foreach (byte b in hash)
                 {

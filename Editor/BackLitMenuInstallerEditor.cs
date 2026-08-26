@@ -13,37 +13,37 @@ namespace Hrpnx.UnityExtensions.BackLitMenuInstaller
     [CustomEditor(typeof(BackLitMenuInstaller))]
     public class BackLitMenuInstallerEditor : Editor
     {
-        private static readonly GUIContent ExcludedRenderersLabel = new(
+        private static readonly GUIContent _excludedRenderersLabel = new(
             "除外する Renderer",
             "逆光ライトを適用しない Renderer"
         );
-        private static readonly GUIContent MenuHeader = new("メニュー");
-        private static readonly GUIContent DefaultLabel = new(
+        private static readonly GUIContent _menuHeader = new("メニュー");
+        private static readonly GUIContent _defaultLabel = new(
             "デフォルトでオン",
             "メニューの初期状態"
         );
-        private static readonly GUIContent SavedLabel = new(
+        private static readonly GUIContent _savedLabel = new(
             "パラメータを保存",
             "ワールド移動やアバター再読み込みをまたいで状態を保持する"
         );
-        private static readonly GUIContent RootMenuLabel = new(
+        private static readonly GUIContent _rootMenuLabel = new(
             "追加先メニュー",
             "メニューを追加するルートメニュー"
         );
 
-        private static readonly GUIContent BacklightHeader = new("逆光ライト");
-        private static readonly GUIContent ColorLabel = new("色");
-        private static readonly GUIContent MainStrengthLabel = new("メインカラーの強度");
-        private static readonly GUIContent ReceiveShadowLabel = new("影を受け取る");
-        private static readonly GUIContent BackfaceMaskLabel = new("裏面で無効化");
-        private static readonly GUIContent NormalStrengthLabel = new("ノーマルマップ強度");
-        private static readonly GUIContent BorderLabel = new(
+        private static readonly GUIContent _backlightHeader = new("逆光ライト");
+        private static readonly GUIContent _colorLabel = new("色");
+        private static readonly GUIContent _mainStrengthLabel = new("メインカラーの強度");
+        private static readonly GUIContent _receiveShadowLabel = new("影を受け取る");
+        private static readonly GUIContent _backfaceMaskLabel = new("裏面で無効化");
+        private static readonly GUIContent _normalStrengthLabel = new("ノーマルマップ強度");
+        private static readonly GUIContent _borderLabel = new(
             "範囲",
             "lilToon のインスペクタに表示される「範囲」と同じ値"
         );
-        private static readonly GUIContent BlurLabel = new("ぼかし");
-        private static readonly GUIContent DirectivityLabel = new("指向性");
-        private static readonly GUIContent ViewStrengthLabel = new("視線方向の影響度");
+        private static readonly GUIContent _blurLabel = new("ぼかし");
+        private static readonly GUIContent _directivityLabel = new("指向性");
+        private static readonly GUIContent _viewStrengthLabel = new("視線方向の影響度");
 
         private SerializedProperty _excludedRenderers;
         private SerializedProperty _default;
@@ -98,7 +98,7 @@ namespace Hrpnx.UnityExtensions.BackLitMenuInstaller
                 true
             )
             {
-                drawHeaderCallback = rect => EditorGUI.LabelField(rect, ExcludedRenderersLabel),
+                drawHeaderCallback = rect => EditorGUI.LabelField(rect, _excludedRenderersLabel),
                 drawElementCallback = (rect, index, isActive, isFocused) =>
                 {
                     rect.y += EditorGUIUtility.standardVerticalSpacing;
@@ -128,22 +128,22 @@ namespace Hrpnx.UnityExtensions.BackLitMenuInstaller
             HandleDragAndDrop(GUILayoutUtility.GetLastRect());
 
             EditorGUILayout.Space();
-            EditorGUILayout.LabelField(MenuHeader, EditorStyles.boldLabel);
-            EditorGUILayout.PropertyField(_default, DefaultLabel);
-            EditorGUILayout.PropertyField(_saved, SavedLabel);
-            EditorGUILayout.PropertyField(_rootMenu, RootMenuLabel);
+            EditorGUILayout.LabelField(_menuHeader, EditorStyles.boldLabel);
+            EditorGUILayout.PropertyField(_default, _defaultLabel);
+            EditorGUILayout.PropertyField(_saved, _savedLabel);
+            EditorGUILayout.PropertyField(_rootMenu, _rootMenuLabel);
 
             EditorGUILayout.Space();
-            EditorGUILayout.LabelField(BacklightHeader, EditorStyles.boldLabel);
-            EditorGUILayout.PropertyField(_color, ColorLabel);
-            EditorGUILayout.PropertyField(_mainStrength, MainStrengthLabel);
-            EditorGUILayout.PropertyField(_receiveShadow, ReceiveShadowLabel);
-            EditorGUILayout.PropertyField(_backfaceMask, BackfaceMaskLabel);
-            EditorGUILayout.PropertyField(_normalStrength, NormalStrengthLabel);
-            EditorGUILayout.PropertyField(_border, BorderLabel);
-            EditorGUILayout.PropertyField(_blur, BlurLabel);
-            EditorGUILayout.PropertyField(_directivity, DirectivityLabel);
-            EditorGUILayout.PropertyField(_viewStrength, ViewStrengthLabel);
+            EditorGUILayout.LabelField(_backlightHeader, EditorStyles.boldLabel);
+            EditorGUILayout.PropertyField(_color, _colorLabel);
+            EditorGUILayout.PropertyField(_mainStrength, _mainStrengthLabel);
+            EditorGUILayout.PropertyField(_receiveShadow, _receiveShadowLabel);
+            EditorGUILayout.PropertyField(_backfaceMask, _backfaceMaskLabel);
+            EditorGUILayout.PropertyField(_normalStrength, _normalStrengthLabel);
+            EditorGUILayout.PropertyField(_border, _borderLabel);
+            EditorGUILayout.PropertyField(_blur, _blurLabel);
+            EditorGUILayout.PropertyField(_directivity, _directivityLabel);
+            EditorGUILayout.PropertyField(_viewStrength, _viewStrengthLabel);
 
             serializedObject.ApplyModifiedProperties();
         }

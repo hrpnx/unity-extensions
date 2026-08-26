@@ -410,7 +410,7 @@ namespace Hrpnx.UnityExtensions.CheekPuffResetter
             }
 
             string assetDir = GetGeneratedAssetsRelativeDirectory();
-            var clipNames = new[]
+            string[] clipNames = new[]
             {
                 EnableClipLeftName,
                 DisableClipLeftName,
