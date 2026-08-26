@@ -190,18 +190,32 @@ namespace Hrpnx.UnityExtensions.BackLitMenuInstaller
             BackLitMenuInstaller installer
         )
         {
+            // 並びは lilToon のインスペクタ (逆光ライト) に合わせている
             buffer.Add(path, type, "material._UseBacklight", 1);
             buffer.Add(path, type, "material._BacklightColor.r", installer.Color.r);
             buffer.Add(path, type, "material._BacklightColor.g", installer.Color.g);
             buffer.Add(path, type, "material._BacklightColor.b", installer.Color.b);
             buffer.Add(path, type, "material._BacklightColor.a", installer.Color.a);
             buffer.Add(path, type, "material._BacklightMainStrength", installer.MainStrength);
+            buffer.Add(
+                path,
+                type,
+                "material._BacklightReceiveShadow",
+                installer.ReceiveShadow ? 1 : 0
+            );
+            buffer.Add(
+                path,
+                type,
+                "material._BacklightBackfaceMask",
+                installer.BackfaceMask ? 1 : 0
+            );
             buffer.Add(path, type, "material._BacklightNormalStrength", installer.NormalStrength);
-            buffer.Add(path, type, "material._BacklightBorder", installer.Border);
+            // lilToon は _BacklightBorder を 1 - value で「範囲」として表示する
+            // (lilEditorGUI.InvBorderGUI)。Border にはその表示値を持たせているので反転して書く。
+            buffer.Add(path, type, "material._BacklightBorder", 1f - installer.Border);
             buffer.Add(path, type, "material._BacklightBlur", installer.Blur);
             buffer.Add(path, type, "material._BacklightDirectivity", installer.Directivity);
             buffer.Add(path, type, "material._BacklightViewStrength", installer.ViewStrength);
-            buffer.Add(path, type, "material._BacklightReceiveShadow", installer.ReceiveShadow);
         }
 
         private static AnimationClip CreateOffAnimationClip(
@@ -440,8 +454,6 @@ namespace Hrpnx.UnityExtensions.BackLitMenuInstaller
         )
         {
             var builder = new StringBuilder();
-            // 生成ロジックを変えたらここを上げる (旧世代の生成物を再利用させないため)
-            builder.Append("v2\n");
             AppendParameters(builder, installer);
             AppendRenderers(builder, renderers, rootTransform, installer.ExcludedRenderers);
             return ToSha256Hex(builder.ToString());
@@ -455,12 +467,13 @@ namespace Hrpnx.UnityExtensions.BackLitMenuInstaller
             AppendFloat(builder, color.b);
             AppendFloat(builder, color.a);
             AppendFloat(builder, installer.MainStrength);
+            builder.Append(installer.ReceiveShadow ? '1' : '0').Append('|');
+            builder.Append(installer.BackfaceMask ? '1' : '0').Append('|');
             AppendFloat(builder, installer.NormalStrength);
             AppendFloat(builder, installer.Border);
             AppendFloat(builder, installer.Blur);
             AppendFloat(builder, installer.Directivity);
             AppendFloat(builder, installer.ViewStrength);
-            AppendFloat(builder, installer.ReceiveShadow);
             builder.Append(installer.Default ? '1' : '0').Append('|');
             builder.Append(installer.Saved ? '1' : '0').Append('|');
             builder
