@@ -11,7 +11,7 @@ namespace Hrpnx.UnityExtensions
     /// <summary>
     /// lilSSRT（Assets/MeltzzZ）を無改変・無参照で扱うためのブリッジ。
     /// シェーダー変換は lilToon.lilSSRTInspector の protected メソッドをリフレクションで呼び、
-    /// SSRT 独自 AO プロパティは「効き」だけをホワイトリストでコピーする。
+    /// SSRT 独自プロパティはホワイトリストでコピーしたあと、lilSSRT 自身の同期処理でシェーダーとキーワードを確定させる。
     ///
     /// 変換の補強:
     ///  - Material Variant は Unity がシェーダー差し替えを禁止するため、ルート（非バリアント）親を変換して継承させる。
@@ -23,16 +23,37 @@ namespace Hrpnx.UnityExtensions
         private const string InspectorTypeName = "lilToon.lilSSRTInspector, lilSSRT.Editor";
         private const string ConvertMethodName = "ConvertMaterialToCustomShader";
         private const string ReplaceMethodName = "ReplaceToCustomShaders";
+        private const string VariantsTypeName = "lilToon.SSRTMaterialVariants, lilSSRT.Editor";
+        private const string MigrationTypeName =
+            "lilToon.SSRTLegacyMaterialMigration, lilSSRT.Editor";
+        private const string SyncMethodName = "Sync";
+        private const string MigrateMethodName = "Migrate";
 
-        // CustomInspector.GetAOProperties() の集合から、texture / debug / hidden を除いた「効き」25個。
+        // CustomInspector.GetAOProperties() の集合から、マスクテクスチャ（UV 依存でマテリアル固有）と
+        // デバッグ表示を除いたもの。lilSSRT の更新でプロパティが増えたらここへ足す。
         private static readonly string[] _aoFloatProperties =
         {
             "_LilSSRTAO",
             "_LilSSRTAOStrength",
             "_LilSSRTAOContrast",
             "_LilSSRTAORadius",
+            "_LilSSRTAODualRadius",
+            "_LilSSRTAONearRadius",
+            "_LilSSRTAONearStrength",
+            "_LilSSRTAOSecondaryRadius",
+            "_LilSSRTAOSecondaryStrength",
+            "_LilSSRTAOTertiaryRadius",
+            "_LilSSRTAOTertiaryStrength",
             "_LilSSRTAOInvertMask",
+            "_LilSSRTAOMaskStrength",
             "_LilSSRTAOAlgorithm",
+            "_LilSSRTAOQuality",
+            "_LilSSRTAOEvaluationMode",
+            "_LilSSRTAOVertexTwoPhase",
+            "_LilSSRTAOVertexTessellation",
+            // 品質設定の形式バージョン。参照と揃えておかないと、次に lilSSRT が同期した時（インスペクタ表示など）に
+            // 旧形式からの移行とみなされ、Quality / Evaluation / Tessellation が上書きされる。
+            "_LilSSRTAOVariantVersion",
             "_LilSSRTAODepthBias",
             "_LilSSRTAOSpread",
             "_LilSSRTAOJitter",
@@ -44,6 +65,7 @@ namespace Hrpnx.UnityExtensions
             "_LilSSRTXeGTAOSlices",
             "_LilSSRTSSRTAOSteps",
             "_LilSSRTSSRTAOThickness",
+            "_LilSSRTSSRTAOIntensity",
             "_LilSSRTSSRTAOTransparentReduce",
             "_LilSSRTSSRTAOHitMode",
             "_LilSSRTAOReconstructNormal",
@@ -53,7 +75,12 @@ namespace Hrpnx.UnityExtensions
             "_LilSSRTAOHitSpread",
         };
 
-        private const string AoColorProperty = "_LilSSRTAOColor";
+        private static readonly string[] _aoColorProperties =
+        {
+            "_LilSSRTAOColor",
+            "_LilSSRTAOSecondaryColor",
+            "_LilSSRTAOTertiaryColor",
+        };
 
         // FakeBounce（疑似バウンスライト）。スコープ A: float/color に加え、描画に必須の環境 RT 含む texture も配る。
         private static readonly string[] _fakeBounceFloatProperties =
@@ -64,6 +91,7 @@ namespace Hrpnx.UnityExtensions
             "_FakeBounceBlur",
             "_FakeBounceBlendMode",
             "_FakeBounceInvertMask",
+            "_FakeBounceMaskStrength",
             "_FakeBouncePower",
             "_FakeBounceNormalBlend",
         };
@@ -85,6 +113,10 @@ namespace Hrpnx.UnityExtensions
         private static MethodInfo _replaceMethod;
         private static bool _resolveAttempted;
         private static bool _resolveFailed;
+
+        private static MethodInfo _syncMethod;
+        private static MethodInfo _migrateMethod;
+        private static bool _syncResolveAttempted;
 
         private static Dictionary<string, Shader> _nameToSSRT; // base lilToon シェーダー名 → lilSSRT シェーダー
         private static bool _mapAttempted;
@@ -138,6 +170,12 @@ namespace Hrpnx.UnityExtensions
                 );
                 return false;
             }
+            finally
+            {
+                // 公式変換は lilShaderManager の共有シェーダー参照を lilSSRT 版に差し替えたまま返る。
+                // 残すと、以後の lilToonPreset.ApplyPreset が素の lilToon マテリアルまで lilSSRT にしてしまう。
+                lilShaderManager.InitializeShaders();
+            }
 
             // 参照不一致（同名重複シェーダー）で変換されなかった場合は名前ベースで差し替える。
             if (
@@ -154,8 +192,62 @@ namespace Hrpnx.UnityExtensions
         }
 
         /// <summary>
-        /// 検証済みの lilSSRT 参照マテリアルから AO の「効き」25プロパティ値を対象へコピーする。
-        /// テクスチャ・マスク・デバッグ・キーワードは一切触らない。
+        /// 対象を lilSSRT 化し、参照の AO / FakeBounce 設定を写して、シェーダーとキーワードを確定させる。
+        /// </summary>
+        public static bool ApplyReference(Material reference, Material target)
+        {
+            if (reference == null || target == null)
+            {
+                return false;
+            }
+
+            ConvertToLilSSRT(target);
+
+            if (!IsLilSSRTMaterial(ResolveShaderOwner(target)))
+            {
+                return false;
+            }
+
+            // 旧キーワードの移行は AO の有効/アルゴリズムを書き換えるので、値を写す前に済ませる。
+            MigrateLegacyKeywords(target);
+
+            CopyAOProperties(reference, target);
+            CopyFakeBounceProperties(reference, target);
+
+            // シェーダー系統（RTAO / GTAO / AO なし）・AO テッセレーション版・キーワードは lilSSRT が
+            // プロパティ値から導出する。値を写しただけでは古いシェーダーとキーワードのまま残る。
+            SyncWithLilSSRT(target);
+
+            return true;
+        }
+
+        /// <summary>
+        /// 対象を lilSSRT 化し、対象自身に残っている AO 設定からシェーダーとキーワードを確定させる（参照からは何も写さない）。
+        /// lilSSRT だったマテリアルが lilToon シェーダーへ戻された後、元の lilSSRT へ戻すのに使う。
+        /// </summary>
+        public static bool ConvertKeepingSettings(Material target)
+        {
+            if (target == null)
+            {
+                return false;
+            }
+
+            ConvertToLilSSRT(target);
+
+            if (!IsLilSSRTMaterial(ResolveShaderOwner(target)))
+            {
+                return false;
+            }
+
+            MigrateLegacyKeywords(target);
+            SyncWithLilSSRT(target);
+
+            return true;
+        }
+
+        /// <summary>
+        /// 検証済みの lilSSRT 参照マテリアルから AO のプロパティ値を対象へコピーする。
+        /// マスクテクスチャ・デバッグ表示は触らない。シェーダーとキーワードは更新しない（ApplyReference を使う）。
         /// </summary>
         public static void CopyAOProperties(Material reference, Material target)
         {
@@ -172,14 +264,17 @@ namespace Hrpnx.UnityExtensions
                 }
             }
 
-            if (reference.HasProperty(AoColorProperty) && target.HasProperty(AoColorProperty))
+            foreach (string prop in _aoColorProperties)
             {
-                target.SetColor(AoColorProperty, reference.GetColor(AoColorProperty));
+                if (reference.HasProperty(prop) && target.HasProperty(prop))
+                {
+                    target.SetColor(prop, reference.GetColor(prop));
+                }
             }
         }
 
         /// <summary>
-        /// 参照から FakeBounce（疑似バウンスライト）の効きを対象へコピーする。
+        /// 参照から FakeBounce（疑似バウンスライト）の設定を対象へコピーする。
         /// 描画に必須の環境 RT（_FakeBounceTex*）含む texture も配るため、チェック ON で実際に描画される。
         /// </summary>
         public static void CopyFakeBounceProperties(Material reference, Material target)
@@ -228,6 +323,76 @@ namespace Hrpnx.UnityExtensions
                 material = material.parent;
             }
             return material;
+        }
+
+        private static void MigrateLegacyKeywords(Material material)
+        {
+            if (!EnsureSyncMethods() || _migrateMethod == null)
+            {
+                return;
+            }
+
+            try
+            {
+                _migrateMethod.Invoke(null, new object[] { material });
+            }
+            catch (TargetInvocationException e)
+            {
+                Debug.LogError(
+                    $"[BulkMat] lilSSRT の旧キーワード移行に失敗しました ({material.name}): {e.InnerException?.Message ?? e.Message}"
+                );
+            }
+        }
+
+        // lilSSRT がインスペクタ表示時に行う同期（シェーダー系統・AO テッセレーション版・キーワードの確定）を呼ぶ。
+        private static void SyncWithLilSSRT(Material material)
+        {
+            if (!EnsureSyncMethods())
+            {
+                return;
+            }
+
+            try
+            {
+                _syncMethod.Invoke(null, new object[] { material, true, true });
+            }
+            catch (TargetInvocationException e)
+            {
+                Debug.LogError(
+                    $"[BulkMat] lilSSRT の同期に失敗しました ({material.name}): {e.InnerException?.Message ?? e.Message}"
+                );
+            }
+        }
+
+        private static bool EnsureSyncMethods()
+        {
+            if (_syncResolveAttempted)
+            {
+                return _syncMethod != null;
+            }
+
+            _syncResolveAttempted = true;
+
+            const BindingFlags flags =
+                BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic;
+            _syncMethod = Type.GetType(VariantsTypeName)
+                ?.GetMethod(
+                    SyncMethodName,
+                    flags,
+                    null,
+                    new[] { typeof(Material), typeof(bool), typeof(bool) },
+                    null
+                );
+            _migrateMethod = Type.GetType(MigrationTypeName)
+                ?.GetMethod(MigrateMethodName, flags, null, new[] { typeof(Material) }, null);
+            if (_syncMethod == null)
+            {
+                Debug.LogWarning(
+                    "[BulkMat] lilSSRT の同期メソッドを解決できません。シェーダーとキーワードは lilSSRT のインスペクタを開くまで更新されません。lilSSRT のバージョンを確認してください。"
+                );
+            }
+
+            return _syncMethod != null;
         }
 
         private static bool EnsureMethods()
