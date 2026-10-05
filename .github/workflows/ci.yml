@@ -40,6 +40,10 @@ jobs:
 
       - name: Lint
         run: npm run lint
+        env:
+          # editorconfig-checker の npm ラッパー 6 系は ec-* という名前のバイナリを探す。
+          # 本体 4.0.0 でアセット名が変わり見つからなくなったため、対応する最後の 3 系に固定する。
+          EC_VERSION: v3.11.3
 
       - name: Run dotnet format
         run: dotnet format Analyzers.csproj --verify-no-changes --verbosity diagnostic

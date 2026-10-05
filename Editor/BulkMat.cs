@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using lilToon;
 using UnityEditor;
 using UnityEngine;
@@ -247,34 +248,14 @@ namespace Hrpnx.UnityExtensions.BulkMat
 
             bool? outlineOverride = _overrideOutline ? _useOutline : (bool?)null;
 
-            bool hasSSRT = _ssrtRef != null;
-            // SSRT 参照の検証（fail-fast）。不正なら SSRT ステップのみスキップし base 適用は継続。
-            if (hasSSRT && !LilSSRTConverter.IsLilSSRTMaterial(_ssrtRef))
-            {
-                Debug.LogError(
-                    $"lilSSRT 参照が lilSSRT マテリアルではありません: {_ssrtRef.name}。SSRT ステップをスキップします。"
-                );
-                hasSSRT = false;
-            }
-
-            // 順序: base preset → 輪郭線上書き → lilSSRT 変換 + AO/FakeBounce コピー。
-            // outline 切替は lilToon シェーダー段階（SSRT 変換前）で確定させ、変換後もバリアントごと維持される
-            // （マテリアル設定適用ツールと同じ挙動）。AO プロパティは lilSSRT シェーダー上にしか存在しない。
-            int baseProcessed;
-            if (_preset != null)
-            {
-                baseProcessed = ApplyPresetToMaterials(materials, _preset, outlineOverride);
-            }
-            else if (outlineOverride.HasValue)
-            {
-                // プリセット未指定（lilSSRT 参照のみ）でも輪郭線上書きだけは適用する。
-                baseProcessed = ApplyOutlineOverrideToMaterials(materials, outlineOverride.Value);
-            }
-            else
-            {
-                baseProcessed = 0;
-            }
-            int ssrtProcessed = hasSSRT ? ApplySSRTToMaterials(materials, _ssrtRef) : 0;
+            ApplySettings(
+                materials,
+                _preset,
+                _ssrtRef,
+                outlineOverride,
+                out int baseProcessed,
+                out int ssrtProcessed
+            );
 
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
@@ -285,9 +266,73 @@ namespace Hrpnx.UnityExtensions.BulkMat
             );
         }
 
+        // 順序: base preset → 輪郭線上書き → lilSSRT 変換 + AO/FakeBounce コピー。
+        // outline 切替は lilToon シェーダー段階（SSRT 変換前）で確定させ、変換後もバリアントごと維持される。
+        // AO プロパティは lilSSRT シェーダー上にしか存在しない。
+        private static void ApplySettings(
+            List<Material> materials,
+            ScriptableObject preset,
+            Material ssrtRef,
+            bool? outlineOverride,
+            out int baseProcessed,
+            out int ssrtProcessed
+        )
+        {
+            bool hasSSRT = ssrtRef != null;
+            // SSRT 参照の検証（fail-fast）。不正なら SSRT ステップのみスキップし base 適用は継続。
+            if (hasSSRT && !LilSSRTConverter.IsLilSSRTMaterial(ssrtRef))
+            {
+                Debug.LogError(
+                    $"lilSSRT 参照が lilSSRT マテリアルではありません: {ssrtRef.name}。SSRT ステップをスキップします。"
+                );
+                hasSSRT = false;
+            }
+
+            // lilToonPreset の適用は lilSSRT のマテリアルも素の lilToon シェーダーへ戻すので、適用前に控えておく。
+            var lilSSRTMaterials = materials.Where(LilSSRTConverter.IsLilSSRTMaterial).ToList();
+
+            if (preset != null)
+            {
+                baseProcessed = ApplyPresetToMaterials(materials, preset, outlineOverride);
+            }
+            else if (outlineOverride.HasValue)
+            {
+                // プリセット未指定（lilSSRT 参照のみ）でも輪郭線上書きだけは適用する。
+                baseProcessed = ApplyOutlineOverrideToMaterials(materials, outlineOverride.Value);
+            }
+            else
+            {
+                baseProcessed = 0;
+            }
+
+            ssrtProcessed = hasSSRT ? ApplySSRTToMaterials(materials, ssrtRef) : 0;
+            if (!hasSSRT)
+            {
+                RestoreLilSSRT(lilSSRTMaterials);
+            }
+        }
+
+        // lilSSRT 参照で変換し直さない場合に、適用前に lilSSRT だったマテリアルを lilSSRT へ戻す
+        // （AO 設定はマテリアルに残っている値を使う）。
+        private static void RestoreLilSSRT(List<Material> lilSSRTMaterials)
+        {
+            // Material Variant は親のシェーダーを継承するので、非 Variant を先に確定させる。
+            foreach (var material in lilSSRTMaterials.OrderBy(m => m.isVariant))
+            {
+                if (LilSSRTConverter.IsLilSSRTMaterial(material))
+                {
+                    continue;
+                }
+
+                Undo.RecordObject(material, "lilSSRT化を維持");
+                LilSSRTConverter.ConvertKeepingSettings(material);
+                EditorUtility.SetDirty(material);
+            }
+        }
+
         // プリセットを通さず輪郭線の有効/無効だけを一括で上書きする。
         // SSRT 変換前（lilToon シェーダー段階）に呼ぶ前提なので ApplyOutlineShaderOnly が正しく名前解決できる。
-        private int ApplyOutlineOverrideToMaterials(List<Material> materials, bool enable)
+        private static int ApplyOutlineOverrideToMaterials(List<Material> materials, bool enable)
         {
             int processedCount = 0;
 
@@ -318,11 +363,13 @@ namespace Hrpnx.UnityExtensions.BulkMat
             return processedCount;
         }
 
-        private int ApplySSRTToMaterials(List<Material> materials, Material ssrtRef)
+        private static int ApplySSRTToMaterials(List<Material> materials, Material ssrtRef)
         {
             int processedCount = 0;
 
-            foreach (var material in materials)
+            // Material Variant は親のシェーダーを継承する。親より先に処理すると、lilSSRT の同期が
+            // Variant 自身へシェーダーを設定しようとして Unity がエラーを出すので、非 Variant を先に確定させる。
+            foreach (var material in materials.OrderBy(m => m != null && m.isVariant))
             {
                 if (material == null)
                 {
@@ -345,9 +392,7 @@ namespace Hrpnx.UnityExtensions.BulkMat
 
                 Undo.RecordObject(material, "lilSSRT化を適用");
 
-                LilSSRTConverter.ConvertToLilSSRT(material);
-                LilSSRTConverter.CopyAOProperties(ssrtRef, material);
-                LilSSRTConverter.CopyFakeBounceProperties(ssrtRef, material);
+                LilSSRTConverter.ApplyReference(ssrtRef, material);
 
                 EditorUtility.SetDirty(material);
                 processedCount++;
@@ -356,13 +401,20 @@ namespace Hrpnx.UnityExtensions.BulkMat
             return processedCount;
         }
 
-        private int ApplyPresetToMaterials(
+        private static int ApplyPresetToMaterials(
             List<Material> materials,
             ScriptableObject config,
             bool? outlineOverride
         )
         {
             bool isLilToonPreset = config is lilToonPreset;
+
+            // lilToonPreset.ApplyPreset は lilShaderManager の共有シェーダー参照から割り当て先を選ぶ。
+            // 参照が lilSSRT 版に差し替わったままだと素の lilToon マテリアルまで lilSSRT になるので、必ず素の lilToon に戻す。
+            if (isLilToonPreset)
+            {
+                lilShaderManager.InitializeShaders();
+            }
 
             var serializedConfig = new SerializedObject(config);
             var colorsProperty = serializedConfig.FindProperty("colors");
