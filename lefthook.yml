@@ -13,5 +13,8 @@ pre-push:
       run: npm run lint:cspell
     editorconfig:
       run: npm run lint:editorconfig
+      env:
+        # ci.yml の Lint ステップと同じ理由で固定する
+        EC_VERSION: v3.11.3
     secretlint:
       run: npm run lint:secretlint
